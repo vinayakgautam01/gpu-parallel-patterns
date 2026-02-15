@@ -1,1 +1,1 @@
-# gpu-image-processing-pipeline
+# gpu-parallel-patterns
