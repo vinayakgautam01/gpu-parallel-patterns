@@ -1,0 +1,34 @@
+# Build
+build/
+cmake-build-*/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated benchmark results
+benchmarks/results/
+
+# Compiled objects
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+
+# CUDA compiled
+*.cubin
+*.fatbin
+*.ptx
+
+# Profiling artifacts
+*.ncu-rep
+*.nsys-rep
+*.qdrep
