@@ -22,4 +22,12 @@ include(cmake/sanitizers.cmake)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# TODO: add library and executable targets
+# Shared utilities library (compiled once, linked by all pattern binaries)
+add_library(gpp_common
+    src/common/checks.cu
+    src/common/timers.cu
+    src/common/cli.cpp
+    src/common/rng.cpp
+)
+
+# TODO: add pattern executable targets (reduce, scan, histogram, etc.)
