@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.24)
-project(gpu-parallel-patterns LANGUAGES CXX CUDA)
+cmake_minimum_required(VERSION 3.20)
+project(gpu_parallel_patterns LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,8 +20,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(cmake/cuda_warnings.cmake)
 include(cmake/sanitizers.cmake)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
 # Shared utilities library (compiled once, linked by all pattern binaries)
 add_library(gpp_common
     src/common/checks.cu
@@ -29,8 +27,10 @@ add_library(gpp_common
     src/common/cli.cpp
     src/common/rng.cpp
 )
+target_include_directories(gpp_common PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 # Smoke test
 add_executable(cuda_smoke src/cuda_smoke.cu)
+target_link_libraries(cuda_smoke PRIVATE gpp_common)
 
 # TODO: add pattern executable targets (reduce, scan, histogram, etc.)
