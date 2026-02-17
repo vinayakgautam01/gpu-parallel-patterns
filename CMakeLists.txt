@@ -30,4 +30,7 @@ add_library(gpp_common
     src/common/rng.cpp
 )
 
+# Smoke test
+add_executable(cuda_smoke src/cuda_smoke.cu)
+
 # TODO: add pattern executable targets (reduce, scan, histogram, etc.)
