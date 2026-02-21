@@ -36,6 +36,22 @@ target_link_libraries(cuda_smoke PRIVATE gpp_common)
 # ---------------------------------------------------------------------------
 # Convolution pattern
 # ---------------------------------------------------------------------------
+
+# GPU kernel implementations — compiled once, linked by test + bench
+add_library(conv_kernels
+    src/patterns/convolution/baseline.cu
+    src/patterns/convolution/opt1_const_mem.cu
+    src/patterns/convolution/opt2_tiled.cu
+    src/patterns/convolution/opt3_cached_halo.cu
+    src/patterns/convolution/dispatch.cu
+)
+target_include_directories(conv_kernels PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/patterns/convolution
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(conv_kernels PUBLIC gpp_common)
+
+# CPU-only correctness test (no GPU required)
 add_executable(conv_test_cpu
     src/patterns/convolution/test_cpu_ref.cpp
 )

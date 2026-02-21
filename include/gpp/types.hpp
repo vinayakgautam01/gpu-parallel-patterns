@@ -21,9 +21,10 @@ using f64 = double;
 // ---------------------------------------------------------------------------
 
 enum class Variant {
-    Baseline,
-    Opt1,
-    Opt2,
+    Baseline,       // global memory only
+    Opt1ConstMem,   // constant memory for filter
+    Opt2Tiled,      // shared memory tile (input = output + 2R halo) + constant filter
+    Opt3CachedHalo, // shared memory tile (output = input, no halo) + halo from L2 (__ldg)
 };
 
 // ---------------------------------------------------------------------------
