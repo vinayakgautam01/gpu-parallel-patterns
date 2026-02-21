@@ -33,4 +33,16 @@ target_include_directories(gpp_common PUBLIC ${PROJECT_SOURCE_DIR}/include)
 add_executable(cuda_smoke src/cuda_smoke.cu)
 target_link_libraries(cuda_smoke PRIVATE gpp_common)
 
+# ---------------------------------------------------------------------------
+# Convolution pattern
+# ---------------------------------------------------------------------------
+add_executable(conv_test_cpu
+    src/patterns/convolution/test_cpu_ref.cpp
+)
+target_include_directories(conv_test_cpu PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/convolution
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(conv_test_cpu PRIVATE gpp_common)
+
 # TODO: add pattern executable targets (reduce, scan, histogram, etc.)
