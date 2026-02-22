@@ -21,10 +21,11 @@ using f64 = double;
 // ---------------------------------------------------------------------------
 
 enum class Variant {
-    Baseline,       // global memory only
-    Opt1ConstMem,   // constant memory for filter
-    Opt2Tiled,      // shared memory tile (input = output + 2R halo) + constant filter
-    Opt3CachedHalo, // shared memory tile (output = input, no halo) + halo from L2 (__ldg)
+    Baseline,        // global memory only
+    Opt1ConstMem,    // constant memory for filter
+    Opt2Tiled,       // shared memory tile (input = output + 2R halo) + constant filter
+    Opt3CachedHalo,  // shared memory tile (output = input, no halo) + halo from L2 (__ldg)
+    Opt4Separable,   // 2-pass separable (horizontal + vertical) with intermediate transpose
 };
 
 // ---------------------------------------------------------------------------

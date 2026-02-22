@@ -43,6 +43,7 @@ add_library(conv_kernels
     src/patterns/convolution/opt1_const_mem.cu
     src/patterns/convolution/opt2_tiled.cu
     src/patterns/convolution/opt3_cached_halo.cu
+    src/patterns/convolution/opt4_separable.cu
     src/patterns/convolution/dispatch.cu
 )
 target_include_directories(conv_kernels PUBLIC

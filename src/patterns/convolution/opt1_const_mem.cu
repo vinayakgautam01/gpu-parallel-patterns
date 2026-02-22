@@ -81,7 +81,7 @@ void conv2d_opt1_const_mem(const float* d_in, float* d_out,
     CUDA_CHECK(cudaMemcpyToSymbol(c_filter, conv_filter,
                                    filter_elems * sizeof(float),
                                    /*offset=*/0,
-                                   cudaMemcpyDeviceToDevice));
+                                   cudaMemcpyHostToDevice));
 
     constexpr int BLOCK_SIZE = 16;
     const dim3 block_dim(BLOCK_SIZE, BLOCK_SIZE);

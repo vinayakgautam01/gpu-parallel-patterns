@@ -113,7 +113,7 @@ void conv2d_opt3_cached_halo(const float* d_in, float* d_out,
     CUDA_CHECK(cudaMemcpyToSymbol(c_filter, conv_filter,
                                    filter_elems * sizeof(float),
                                    /*offset=*/0,
-                                   cudaMemcpyDeviceToDevice));
+                                   cudaMemcpyHostToDevice));
 
     const dim3 block_dim(OUTPUT_TILE, OUTPUT_TILE);
     const dim3 grid_dim(gpp::div_up(w, OUTPUT_TILE), gpp::div_up(h, OUTPUT_TILE));
