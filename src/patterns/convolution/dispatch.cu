@@ -8,27 +8,27 @@ namespace gpp::conv {
 // Forward declarations of per-variant launchers (defined in their own .cu files).
 void conv2d_baseline(const float* d_in, float* d_out,
                      int w, int h,
-                     const float* conv_filter, int R,
+                     const float* d_filter, int R,
                      cudaStream_t stream);
 
 void conv2d_opt1_const_mem(const float* d_in, float* d_out,
                            int w, int h,
-                           const float* conv_filter, int R,
+                           const float* d_filter, int R,
                            cudaStream_t stream);
 
 void conv2d_opt2_tiled(const float* d_in, float* d_out,
                        int w, int h,
-                       const float* conv_filter, int R,
+                       const float* d_filter, int R,
                        cudaStream_t stream);
 
 void conv2d_opt3_cached_halo(const float* d_in, float* d_out,
                               int w, int h,
-                              const float* conv_filter, int R,
+                              const float* d_filter, int R,
                               cudaStream_t stream);
 
 void conv2d_opt4_separable(const float* d_in, float* d_out,
                             int w, int h,
-                            const float* h_filt, const float* v_filt, int R,
+                            const float* d_h_filt, const float* d_v_filt, int R,
                             cudaStream_t stream);
 
 void run(Variant variant,

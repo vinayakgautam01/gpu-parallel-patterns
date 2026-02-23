@@ -162,7 +162,7 @@ __global__ void kernel_transpose(const float* __restrict__ src,
 // ---------------------------------------------------------------------------
 void conv2d_opt4_separable(const float* d_in, float* d_out,
                             int w, int h,
-                            const float* h_filt, const float* v_filt, int R,
+                            const float* d_h_filt, const float* d_v_filt, int R,
                             cudaStream_t stream) {
     const int k = 2 * R + 1;
 
@@ -174,21 +174,31 @@ void conv2d_opt4_separable(const float* d_in, float* d_out,
         std::exit(EXIT_FAILURE);
     }
 
-    CUDA_CHECK(cudaMemcpyToSymbol(c_h_filt, h_filt,
+    CUDA_CHECK(cudaMemcpyToSymbol(c_h_filt, d_h_filt,
                                    static_cast<size_t>(k) * sizeof(float), 0,
-                                   cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpyToSymbol(c_v_filt, v_filt,
+                                   cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpyToSymbol(c_v_filt, d_v_filt,
                                    static_cast<size_t>(k) * sizeof(float), 0,
-                                   cudaMemcpyHostToDevice));
+                                   cudaMemcpyDeviceToDevice));
 
     // ------------------------------------------------------------------
-    // Allocate two intermediate buffers (both w*h floats).
+    // Persistent scratch buffers — reallocated only when the image grows.
+    // Avoids cudaMalloc/cudaFree overhead in the hot (bench) path.
     // ------------------------------------------------------------------
+    static float*  s_tmp1       = nullptr;
+    static float*  s_tmp2       = nullptr;
+    static size_t  s_alloc      = 0;
+
     const size_t buf_bytes = static_cast<size_t>(w) * h * sizeof(float);
-    float* d_tmp1 = nullptr;
-    float* d_tmp2 = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_tmp1, buf_bytes));
-    CUDA_CHECK(cudaMalloc(&d_tmp2, buf_bytes));
+    if (buf_bytes > s_alloc) {
+        CUDA_CHECK(cudaFree(s_tmp1));
+        CUDA_CHECK(cudaFree(s_tmp2));
+        CUDA_CHECK(cudaMalloc(&s_tmp1, buf_bytes));
+        CUDA_CHECK(cudaMalloc(&s_tmp2, buf_bytes));
+        s_alloc = buf_bytes;
+    }
+    float* d_tmp1 = s_tmp1;
+    float* d_tmp2 = s_tmp2;
 
     // ------------------------------------------------------------------
     // Step 1: horizontal pass  in[h×w] → tmp1[h×w]
@@ -247,10 +257,6 @@ void conv2d_opt4_separable(const float* d_in, float* d_out,
         CUDA_CHECK_LAST();
     }
 
-    // Synchronise so cudaFree is safe (all four kernels must finish first).
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-    CUDA_CHECK(cudaFree(d_tmp1));
-    CUDA_CHECK(cudaFree(d_tmp2));
 }
 
 }  // namespace gpp::conv

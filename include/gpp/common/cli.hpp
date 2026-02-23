@@ -13,6 +13,7 @@ struct CliArgs {
     BenchConfig bench;
     int         width  = 0;     // for 2-D patterns (convolution, stencil)
     int         height = 0;
+    int         radius = 1;     // filter radius R; pattern-specific max enforced by caller
     uint32_t    seed   = 42;
 };
 
@@ -47,6 +48,9 @@ inline CliArgs parse_cli(int argc, char** argv) {
         } else if (match("--n") || match("-n")) {
             const char* v = next();
             if (v) args.bench.size = std::atoi(v);
+        } else if (match("--R") || match("--radius")) {
+            const char* v = next();
+            if (v) args.radius = std::atoi(v);
         } else if (match("--w")) {
             const char* v = next();
             if (v) args.width = std::atoi(v);
@@ -69,6 +73,7 @@ inline CliArgs parse_cli(int argc, char** argv) {
                 "Usage: <binary> [options]\n"
                 "  --variant, -v  baseline|opt1|opt2|opt3|opt4  (default: baseline)\n"
                 "  --n, -n        number of elements  (default: %d)\n"
+                "  --R, --radius  filter radius        (default: 1)\n"
                 "  --w            width  (2-D patterns)\n"
                 "  --h            height (2-D patterns)\n"
                 "  --iters        timed iterations     (default: %d)\n"

@@ -98,7 +98,7 @@ __global__ void kernel_opt2_tiled(const float* __restrict__ d_in,
 // ---------------------------------------------------------------------------
 void conv2d_opt2_tiled(const float* d_in, float* d_out,
                         int w, int h,
-                        const float* conv_filter, int R,
+                        const float* d_filter, int R,
                         cudaStream_t stream) {
     const int input_tile   = OUTPUT_TILE + 2 * R;
     const int filter_elems = (2 * R + 1) * (2 * R + 1);
@@ -118,11 +118,10 @@ void conv2d_opt2_tiled(const float* d_in, float* d_out,
         std::exit(EXIT_FAILURE);
     }
 
-    // Copy filter into constant memory.
-    CUDA_CHECK(cudaMemcpyToSymbol(c_filter, conv_filter,
+    CUDA_CHECK(cudaMemcpyToSymbol(c_filter, d_filter,
                                    filter_elems * sizeof(float),
                                    /*offset=*/0,
-                                   cudaMemcpyHostToDevice));
+                                   cudaMemcpyDeviceToDevice));
 
     const dim3 block_dim(input_tile, input_tile);
     const dim3 grid_dim(gpp::div_up(w, OUTPUT_TILE), gpp::div_up(h, OUTPUT_TILE));

@@ -16,10 +16,10 @@
         } \
     } while (0)
 
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 // Independent slow reference used only to cross-check cpu_ref.
 // Accumulates in double to reduce rounding error.
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 static void conv2d_slow_ref(const std::vector<float>& in, std::vector<float>& out,
                              int w, int h,
                              const std::vector<float>& kernel, int R) {

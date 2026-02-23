@@ -13,7 +13,7 @@ RESULTS_DIR="${REPO_DIR}/benchmarks/results"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 OUTFILE="${RESULTS_DIR}/bench_${TIMESTAMP}.csv"
 
-VARIANTS=("baseline" "opt1" "opt2")
+VARIANTS=("baseline" "opt1" "opt2" "opt3" "opt4")
 ITERS="${BENCH_ITERS:-100}"
 WARMUP="${BENCH_WARMUP:-10}"
 

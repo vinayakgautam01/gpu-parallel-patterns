@@ -62,4 +62,24 @@ target_include_directories(conv_cpu_test PRIVATE
 )
 target_link_libraries(conv_cpu_test PRIVATE gpp_common)
 
+# GPU correctness test — validates all variants against conv2d_cpu_ref.
+add_executable(conv_gpu_test
+    src/patterns/convolution/gpu_test.cu
+)
+target_include_directories(conv_gpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/convolution
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(conv_gpu_test PRIVATE conv_kernels gpp_common)
+
+# Benchmark binary — picked up by scripts/bench.sh (*_bench glob).
+add_executable(conv_bench
+    src/patterns/convolution/bench.cu
+)
+target_include_directories(conv_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/convolution
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(conv_bench PRIVATE conv_kernels gpp_common)
+
 # TODO: add pattern executable targets (reduce, scan, histogram, etc.)

@@ -44,20 +44,13 @@ __global__ void kernel_baseline(const float* __restrict__ d_in,
 // ---------------------------------------------------------------------------
 void conv2d_baseline(const float* d_in, float* d_out,
                      int w, int h,
-                     const float* conv_filter, int R,
+                     const float* d_filter, int R,
                      cudaStream_t stream) {
-    const size_t filter_bytes = static_cast<size_t>((2 * R + 1) * (2 * R + 1)) * sizeof(float);
-    float* d_filter = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_filter, filter_bytes));
-    CUDA_CHECK(cudaMemcpy(d_filter, conv_filter, filter_bytes, cudaMemcpyHostToDevice));
-
     constexpr int BLOCK_SIZE = 16;
     const dim3 block_dim(BLOCK_SIZE, BLOCK_SIZE);
     const dim3 grid_dim(gpp::div_up(w, BLOCK_SIZE), gpp::div_up(h, BLOCK_SIZE));
     kernel_baseline<<<grid_dim, block_dim, 0, stream>>>(d_in, d_out, w, h, d_filter, R);
     CUDA_CHECK_LAST();
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-    CUDA_CHECK(cudaFree(d_filter));
 }
 
 }  // namespace gpp::conv

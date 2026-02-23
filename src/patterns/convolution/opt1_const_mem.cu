@@ -64,7 +64,7 @@ __global__ void kernel_opt1_const_mem(const float* __restrict__ d_in,
 // ---------------------------------------------------------------------------
 void conv2d_opt1_const_mem(const float* d_in, float* d_out,
                             int w, int h,
-                            const float* conv_filter, int R,
+                            const float* d_filter, int R,
                             cudaStream_t stream) {
     const int k = 2 * R + 1;
     const int filter_elems = k * k;
@@ -77,11 +77,10 @@ void conv2d_opt1_const_mem(const float* d_in, float* d_out,
         std::exit(EXIT_FAILURE);
     }
 
-    // Copy filter from device global memory → constant memory.
-    CUDA_CHECK(cudaMemcpyToSymbol(c_filter, conv_filter,
+    CUDA_CHECK(cudaMemcpyToSymbol(c_filter, d_filter,
                                    filter_elems * sizeof(float),
                                    /*offset=*/0,
-                                   cudaMemcpyHostToDevice));
+                                   cudaMemcpyDeviceToDevice));
 
     constexpr int BLOCK_SIZE = 16;
     const dim3 block_dim(BLOCK_SIZE, BLOCK_SIZE);
