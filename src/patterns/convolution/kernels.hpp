@@ -25,7 +25,7 @@ void run(Variant variant,
          cudaStream_t stream = 0);
 
 /// Separable-filter overload — skips 2-D filter extraction entirely.
-/// Only valid with Variant::Opt4Separable; exits with an error otherwise.
+/// Only valid with Variant::Opt4; exits with an error otherwise.
 ///
 ///   h_filt — host array, length 2*R+1, horizontal 1-D weights
 ///   v_filt — host array, length 2*R+1, vertical   1-D weights

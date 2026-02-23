@@ -38,6 +38,8 @@ inline CliArgs parse_cli(int argc, char** argv) {
             if (std::strcmp(v, "baseline") == 0) args.bench.variant = Variant::Baseline;
             else if (std::strcmp(v, "opt1") == 0) args.bench.variant = Variant::Opt1;
             else if (std::strcmp(v, "opt2") == 0) args.bench.variant = Variant::Opt2;
+            else if (std::strcmp(v, "opt3") == 0) args.bench.variant = Variant::Opt3;
+            else if (std::strcmp(v, "opt4") == 0) args.bench.variant = Variant::Opt4;
             else {
                 std::fprintf(stderr, "warning: unknown variant '%s', using baseline\n", v);
                 args.bench.variant = Variant::Baseline;
@@ -65,7 +67,7 @@ inline CliArgs parse_cli(int argc, char** argv) {
         } else if (match("--help")) {
             std::printf(
                 "Usage: <binary> [options]\n"
-                "  --variant, -v  baseline|opt1|opt2  (default: baseline)\n"
+                "  --variant, -v  baseline|opt1|opt2|opt3|opt4  (default: baseline)\n"
                 "  --n, -n        number of elements  (default: %d)\n"
                 "  --w            width  (2-D patterns)\n"
                 "  --h            height (2-D patterns)\n"
