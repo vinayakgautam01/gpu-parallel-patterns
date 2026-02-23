@@ -53,13 +53,13 @@ target_include_directories(conv_kernels PUBLIC
 target_link_libraries(conv_kernels PUBLIC gpp_common)
 
 # CPU-only correctness test (no GPU required)
-add_executable(conv_test_cpu
-    src/patterns/convolution/test_cpu_ref.cpp
+add_executable(conv_cpu_test
+    src/patterns/convolution/cpu_ref_test.cpp
 )
-target_include_directories(conv_test_cpu PRIVATE
+target_include_directories(conv_cpu_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src/patterns/convolution
     ${PROJECT_SOURCE_DIR}/include
 )
-target_link_libraries(conv_test_cpu PRIVATE gpp_common)
+target_link_libraries(conv_cpu_test PRIVATE gpp_common)
 
 # TODO: add pattern executable targets (reduce, scan, histogram, etc.)
