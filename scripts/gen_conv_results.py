@@ -159,7 +159,13 @@ def load_csv(path: Path) -> pd.DataFrame:
 
 
 def compute_speedups(df: pd.DataFrame) -> pd.DataFrame:
-    g = df.groupby(["variant", "n", "R"], as_index=False)["time_ms"].mean()
+    agg_cols = ["variant", "n", "R"]
+    if "w" in df.columns:
+        agg_cols.append("w")
+    if "h" in df.columns:
+        agg_cols.append("h")
+
+    g = df.groupby(agg_cols, as_index=False)["time_ms"].mean()
 
     baseline = (
         g[g["variant"] == "baseline"][["n", "R", "time_ms"]]

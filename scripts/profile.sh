@@ -4,9 +4,12 @@ set -euo pipefail
 # ─── Profile a single benchmark binary with Nsight tools ───
 # Usage:
 #   ./scripts/profile.sh reduce_bench --variant opt1 --n 1048576
+#   ./scripts/profile.sh conv_bench --variant opt4 --n 1048576 --R 5
+#
+# Defaults to --iters 1 --warmup 1 (override by passing your own).
+# ncu replays each kernel ~31 times for --set full; fewer launches = faster.
 #
 # Requires: nsys and/or ncu (Nsight Systems / Nsight Compute)
-# Note: Colab may not support deep profiling; use a full GPU VM for best results.
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BIN_DIR="${REPO_DIR}/build/bin"
@@ -22,6 +25,19 @@ BENCH_NAME="$1"
 shift
 BENCH_BIN="${BIN_DIR}/${BENCH_NAME}"
 EXTRA_ARGS=("$@")
+
+# ncu replays every kernel launch ~31 times (--set full). Default to minimal
+# iters/warmup unless the caller explicitly provides them.
+HAS_ITERS=false
+HAS_WARMUP=false
+for arg in "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; do
+    case "${arg}" in
+        --iters)  HAS_ITERS=true  ;;
+        --warmup) HAS_WARMUP=true ;;
+    esac
+done
+if ! ${HAS_ITERS};  then EXTRA_ARGS+=(--iters 1);  fi
+if ! ${HAS_WARMUP}; then EXTRA_ARGS+=(--warmup 1); fi
 
 if [ ! -x "${BENCH_BIN}" ]; then
     echo "Error: ${BENCH_BIN} not found or not executable."
