@@ -42,8 +42,8 @@ inline CliArgs parse_cli(int argc, char** argv) {
             else if (std::strcmp(v, "opt3") == 0) args.bench.variant = Variant::Opt3;
             else if (std::strcmp(v, "opt4") == 0) args.bench.variant = Variant::Opt4;
             else {
-                std::fprintf(stderr, "warning: unknown variant '%s', using baseline\n", v);
-                args.bench.variant = Variant::Baseline;
+                std::fprintf(stderr, "error: unknown variant '%s'\n", v);
+                std::exit(1);
             }
         } else if (match("--n") || match("-n")) {
             const char* v = next();

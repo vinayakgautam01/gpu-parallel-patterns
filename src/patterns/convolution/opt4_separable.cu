@@ -28,7 +28,6 @@
 //   h_filt[kc]  — horizontal weights, length k
 //   v_filt[kr]  — vertical   weights, length k
 // Must satisfy h_filt[kc] * v_filt[kr] == K[kr][kc] for all kr, kc.
-// Extraction and normalisation live in dispatch.cu.
 
 #include <cuda_runtime.h>
 #include <cstdio>

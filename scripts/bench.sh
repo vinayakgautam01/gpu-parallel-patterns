@@ -55,11 +55,13 @@ for bench_bin in "${BENCHES[@]}"; do
         for n in ${SIZES}; do
             echo "--- ${name} | ${variant} | n=${n} ---"
 
-            output=$("${bench_bin}" --variant "${variant}" --n "${n}" \
-                         --iters "${ITERS}" --warmup "${WARMUP}" 2>&1) || true
-
-            # Expect bench binaries to print a line like: time_ms=1.234
-            time_ms=$(echo "${output}" | grep -o 'time_ms=[0-9.]*' | cut -d= -f2 || echo "N/A")
+            if output=$("${bench_bin}" --variant "${variant}" --n "${n}" \
+                            --iters "${ITERS}" --warmup "${WARMUP}" 2>/dev/null); then
+                # Expect bench binaries to print a line like: time_ms=1.234
+                time_ms=$(echo "${output}" | grep -o 'time_ms=[0-9.]*' | cut -d= -f2 || echo "N/A")
+            else
+                time_ms="N/A"
+            fi
 
             echo "${name},${variant},${n},${time_ms}" >> "${OUTFILE}"
             echo "  ${time_ms} ms"
