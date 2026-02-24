@@ -55,8 +55,14 @@ fi
 if command -v ncu &>/dev/null; then
     NCU_OUT="${PATTERN_DIR}/${BENCH_NAME}_${TIMESTAMP}.ncu-rep"
     echo "=== Nsight Compute ==="
+    # Older ncu uses --export/-o; newer uses --output. Detect via --help.
+    if ncu --help 2>&1 | grep -q -- '--output'; then
+        NCU_OUT_FLAG="--output"
+    else
+        NCU_OUT_FLAG="--export"
+    fi
     ncu --set full \
-        --output "${NCU_OUT}" \
+        "${NCU_OUT_FLAG}" "${NCU_OUT}" \
         --force-overwrite \
         "${BENCH_BIN}" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
     echo "Report: ${NCU_OUT}"

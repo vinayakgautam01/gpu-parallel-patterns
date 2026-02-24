@@ -15,7 +15,7 @@ echo ""
 
 echo "=== Installing dependencies ==="
 apt-get update -qq
-apt-get install -y -qq build-essential cmake > /dev/null
+apt-get install -y -qq build-essential cmake nsight-systems > /dev/null
 echo "Done."
 echo ""
 
