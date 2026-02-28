@@ -11,8 +11,9 @@ namespace gpp {
 
 struct CliArgs {
     BenchConfig bench;
-    int         width  = 0;     // for 2-D patterns (convolution, stencil)
+    int         width  = 0;     // for 2-D / 3-D patterns
     int         height = 0;
+    int         depth  = 0;     // for 3-D patterns (stencil)
     int         radius = 1;     // filter radius R; pattern-specific max enforced by caller
     uint32_t    seed   = 42;
 };
@@ -57,6 +58,9 @@ inline CliArgs parse_cli(int argc, char** argv) {
         } else if (match("--h")) {
             const char* v = next();
             if (v) args.height = std::atoi(v);
+        } else if (match("--d")) {
+            const char* v = next();
+            if (v) args.depth = std::atoi(v);
         } else if (match("--iters")) {
             const char* v = next();
             if (v) args.bench.iters = std::atoi(v);
@@ -74,8 +78,9 @@ inline CliArgs parse_cli(int argc, char** argv) {
                 "  --variant, -v  baseline|opt1|opt2|opt3|opt4  (default: baseline)\n"
                 "  --n, -n        number of elements  (default: %d)\n"
                 "  --R, --radius  filter radius        (default: 1)\n"
-                "  --w            width  (2-D patterns)\n"
-                "  --h            height (2-D patterns)\n"
+                "  --w            width  (2-D / 3-D patterns)\n"
+                "  --h            height (2-D / 3-D patterns)\n"
+                "  --d            depth  (3-D patterns)\n"
                 "  --iters        timed iterations     (default: %d)\n"
                 "  --warmup       warm-up iterations   (default: %d)\n"
                 "  --seed         RNG seed             (default: %u)\n"
@@ -86,8 +91,10 @@ inline CliArgs parse_cli(int argc, char** argv) {
         }
     }
 
-    // For 2-D patterns: if width/height set, derive size from them.
-    if (args.width > 0 && args.height > 0) {
+    // For 2-D / 3-D patterns: if dimensions set, derive size from them.
+    if (args.width > 0 && args.height > 0 && args.depth > 0) {
+        args.bench.size = args.width * args.height * args.depth;
+    } else if (args.width > 0 && args.height > 0) {
         args.bench.size = args.width * args.height;
     }
 

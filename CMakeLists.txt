@@ -82,4 +82,52 @@ target_include_directories(conv_bench PRIVATE
 )
 target_link_libraries(conv_bench PRIVATE conv_kernels gpp_common)
 
+# ---------------------------------------------------------------------------
+# Stencil pattern (7-point 3D)
+# ---------------------------------------------------------------------------
+
+# GPU kernel implementations — compiled once, linked by test + bench
+add_library(stencil_kernels
+    src/patterns/stencil/baseline.cu
+    src/patterns/stencil/opt1_shared_halo.cu
+    src/patterns/stencil/opt2_thread_coarsening.cu
+    src/patterns/stencil/opt3_register_tiling.cu
+    src/patterns/stencil/dispatch.cu
+)
+target_include_directories(stencil_kernels PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/patterns/stencil
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(stencil_kernels PUBLIC gpp_common)
+
+# CPU-only correctness test (no GPU required)
+add_executable(stencil_cpu_test
+    src/patterns/stencil/cpu_ref_test.cpp
+)
+target_include_directories(stencil_cpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/stencil
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(stencil_cpu_test PRIVATE gpp_common)
+
+# GPU correctness test — validates all variants against stencil3d_cpu_ref.
+add_executable(stencil_gpu_test
+    src/patterns/stencil/gpu_test.cu
+)
+target_include_directories(stencil_gpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/stencil
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(stencil_gpu_test PRIVATE stencil_kernels gpp_common)
+
+# Benchmark binary — picked up by scripts/bench.sh (*_bench glob).
+add_executable(stencil_bench
+    src/patterns/stencil/bench.cu
+)
+target_include_directories(stencil_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/stencil
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(stencil_bench PRIVATE stencil_kernels gpp_common)
+
 # TODO: add pattern executable targets (reduce, scan, histogram, etc.)
