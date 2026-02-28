@@ -53,7 +53,7 @@ else
     exit 1
   fi
   # Extract integers from JSON without jq (portable — no mapfile needed)
-  SIZES_RAW="$(grep -oE '[0-9]+' "${SIZES_JSON}")"
+  SIZES_RAW="$(grep -oE '[0-9]+' "${SIZES_JSON}" | tr '\n' ' ')"
   read -r -a SIZES <<< "${SIZES_RAW}"
 fi
 
