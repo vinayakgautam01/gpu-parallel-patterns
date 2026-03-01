@@ -179,4 +179,52 @@ target_include_directories(hist_bench PRIVATE
 )
 target_link_libraries(hist_bench PRIVATE hist_kernels gpp_common)
 
-# TODO: add pattern executable targets (reduce, scan, etc.)
+# ---------------------------------------------------------------------------
+# Reduce pattern (sum reduction)
+# ---------------------------------------------------------------------------
+
+# GPU kernel implementations — compiled once, linked by test + bench
+add_library(reduce_kernels
+    src/patterns/reduce/baseline.cu
+    src/patterns/reduce/opt1_contiguous_threads.cu
+    src/patterns/reduce/opt2_coarsened.cu
+    src/patterns/reduce/opt3_warp_shuffle.cu
+    src/patterns/reduce/dispatch.cu
+)
+target_include_directories(reduce_kernels PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/patterns/reduce
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(reduce_kernels PUBLIC gpp_common)
+
+# CPU-only correctness test (no GPU required)
+add_executable(reduce_cpu_test
+    src/patterns/reduce/cpu_ref_test.cpp
+)
+target_include_directories(reduce_cpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/reduce
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(reduce_cpu_test PRIVATE gpp_common)
+
+# GPU correctness test — validates all variants against reduce_sum_cpu_ref.
+add_executable(reduce_gpu_test
+    src/patterns/reduce/gpu_test.cu
+)
+target_include_directories(reduce_gpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/reduce
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(reduce_gpu_test PRIVATE reduce_kernels gpp_common)
+
+# Benchmark binary — picked up by scripts/bench.sh (*_bench glob).
+add_executable(reduce_bench
+    src/patterns/reduce/bench.cu
+)
+target_include_directories(reduce_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/reduce
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(reduce_bench PRIVATE reduce_kernels gpp_common)
+
+# TODO: add pattern executable targets (scan, etc.)
