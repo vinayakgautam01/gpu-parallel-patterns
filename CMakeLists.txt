@@ -130,4 +130,53 @@ target_include_directories(stencil_bench PRIVATE
 )
 target_link_libraries(stencil_bench PRIVATE stencil_kernels gpp_common)
 
-# TODO: add pattern executable targets (reduce, scan, histogram, etc.)
+# ---------------------------------------------------------------------------
+# Histogram pattern
+# ---------------------------------------------------------------------------
+
+# GPU kernel implementations — compiled once, linked by test + bench
+add_library(hist_kernels
+    src/patterns/histogram/baseline_global_atomics.cu
+    src/patterns/histogram/opt1_block_shared_hist.cu
+    src/patterns/histogram/opt2_coarsen_contiguous.cu
+    src/patterns/histogram/opt3_coarsen_interleaved.cu
+    src/patterns/histogram/opt4_aggregation.cu
+    src/patterns/histogram/dispatch.cu
+)
+target_include_directories(hist_kernels PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/patterns/histogram
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(hist_kernels PUBLIC gpp_common)
+
+# CPU-only correctness test (no GPU required)
+add_executable(hist_cpu_test
+    src/patterns/histogram/cpu_ref_test.cpp
+)
+target_include_directories(hist_cpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/histogram
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(hist_cpu_test PRIVATE gpp_common)
+
+# GPU correctness test — validates all variants against histogram_cpu_ref.
+add_executable(hist_gpu_test
+    src/patterns/histogram/gpu_test.cu
+)
+target_include_directories(hist_gpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/histogram
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(hist_gpu_test PRIVATE hist_kernels gpp_common)
+
+# Benchmark binary — picked up by scripts/bench.sh (*_bench glob).
+add_executable(hist_bench
+    src/patterns/histogram/bench.cu
+)
+target_include_directories(hist_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/histogram
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(hist_bench PRIVATE hist_kernels gpp_common)
+
+# TODO: add pattern executable targets (reduce, scan, etc.)
