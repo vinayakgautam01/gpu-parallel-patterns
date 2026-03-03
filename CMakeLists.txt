@@ -238,6 +238,7 @@ add_library(scan_kernels
     src/patterns/scan/opt2_brent_kung.cu
     src/patterns/scan/opt3_coarsened.cu
     src/patterns/scan/opt4_single_pass.cu
+    src/patterns/scan/add_block_prefix.cu
     src/patterns/scan/dispatch.cu
 )
 target_include_directories(scan_kernels PUBLIC
