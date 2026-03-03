@@ -227,4 +227,51 @@ target_include_directories(reduce_bench PRIVATE
 )
 target_link_libraries(reduce_bench PRIVATE reduce_kernels gpp_common)
 
-# TODO: add pattern executable targets (scan, etc.)
+# ---------------------------------------------------------------------------
+# Scan pattern (inclusive prefix sum)
+# ---------------------------------------------------------------------------
+
+# GPU kernel implementations — compiled once, linked by test + bench
+add_library(scan_kernels
+    src/patterns/scan/baseline.cu
+    src/patterns/scan/opt1_kogge_stone.cu
+    src/patterns/scan/opt2_brent_kung.cu
+    src/patterns/scan/opt3_coarsened.cu
+    src/patterns/scan/opt4_single_pass.cu
+    src/patterns/scan/dispatch.cu
+)
+target_include_directories(scan_kernels PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/patterns/scan
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(scan_kernels PUBLIC gpp_common)
+
+# CPU-only correctness test (no GPU required)
+add_executable(scan_cpu_test
+    src/patterns/scan/cpu_ref_test.cpp
+)
+target_include_directories(scan_cpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/scan
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(scan_cpu_test PRIVATE gpp_common)
+
+# GPU correctness test — validates all variants against inclusive_scan_cpu_ref.
+add_executable(scan_gpu_test
+    src/patterns/scan/gpu_test.cu
+)
+target_include_directories(scan_gpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/scan
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(scan_gpu_test PRIVATE scan_kernels gpp_common)
+
+# Benchmark binary — picked up by scripts/bench.sh (*_bench glob).
+add_executable(scan_bench
+    src/patterns/scan/bench.cu
+)
+target_include_directories(scan_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/scan
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(scan_bench PRIVATE scan_kernels gpp_common)
