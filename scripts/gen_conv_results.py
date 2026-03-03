@@ -283,9 +283,9 @@ def write_markdown(cfg: Config, df_agg: pd.DataFrame, csv_path: Path) -> None:
 
     md.append("## Plots\n")
     md.append(f"### Time vs size (R={r_vals[0]})\n")
-    md.append(f"![time vs size](plots/{time_plot.name})\n")
+    md.append(f"![time vs size]({time_plot.name})\n")
     md.append(f"### Speedup vs R (n={n_max})\n")
-    md.append(f"![speedup vs R](plots/{speed_plot.name})\n")
+    md.append(f"![speedup vs R]({speed_plot.name})\n")
 
     md.append("## Tables\n")
     md.append("> Notes:\n")
@@ -322,9 +322,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Generate convolution benchmark markdown + plots from latest CSV.")
     ap.add_argument("--csv", type=str, default=None,
                     help="Path to CSV. If omitted, auto-picks latest conv_*.csv in benchmarks/results/.")
-    ap.add_argument("--out-md", type=str, default=str(root / "docs" / "convolution_results.md"),
+    pat_dir = root / "docs" / "plots" / "convolution"
+    ap.add_argument("--out-md", type=str,
+                    default=str(pat_dir / "convolution_results.md"),
                     help="Output markdown file path.")
-    ap.add_argument("--out-dir", type=str, default=str(root / "docs" / "plots"),
+    ap.add_argument("--out-dir", type=str,
+                    default=str(pat_dir),
                     help="Directory for output plots.")
     ap.add_argument("--r", dest="r_values", action="append", default=[],
                     help="R value to include in tables (repeatable). If omitted, auto-picks a few.")
