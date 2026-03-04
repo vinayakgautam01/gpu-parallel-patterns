@@ -72,7 +72,7 @@ static void check_variants(const char* label,
     std::vector<float> h_ref(n);
     gpp::scan::inclusive_scan_cpu_ref(h_in.data(), h_ref.data(), n);
 
-    const float atol = std::fmax(1e-2f, n * 1e-6f);
+    const float atol = std::fmax(1e-2f, static_cast<float>(n) * 1e-6f);
     const float rtol = 1e-2f;
 
     const gpp::Variant* variants = include_baseline ? kAllVariants : kFastVariants;
@@ -164,7 +164,7 @@ int main() {
         std::vector<float> h_ref(n);
         gpp::scan::inclusive_scan_cpu_ref(data.data(), h_ref.data(), n);
 
-        const float atol = std::fmax(1e-2f, n * 1e-6f);
+        const float atol = std::fmax(1e-2f, static_cast<float>(n) * 1e-6f);
         const float rtol = 1e-2f;
 
         for (int vi = 0; vi < kNumFastVariants; ++vi) {
