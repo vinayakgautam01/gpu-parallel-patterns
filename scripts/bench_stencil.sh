@@ -110,7 +110,7 @@ echo "sides   : ${SIDES[*]}"
 echo ""
 
 # CSV header
-echo "pattern,variant,side,nx,ny,nz,n,iters,warmup,time_ms" > "${OUT_CSV}"
+echo "pattern,variant,side,nx,ny,nz,n,iters,warmup,time_ms,cpu_time_ms" > "${OUT_CSV}"
 
 # ---------------------------
 # Sweep
@@ -127,13 +127,18 @@ for variant in "${VARIANTS[@]}"; do
     echo "--- stencil | ${variant} | ${side}³ (n=${n}) | iters=${iters} warmup=${warmup} ---"
     output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
-    time_ms="$(echo "${output}" | grep -oE 'time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
+    time_ms="$(echo "${output}" | grep -oE '^time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
     if [[ -z "${time_ms}" ]]; then
       time_ms="N/A"
     fi
 
-    echo "stencil,${variant},${side},${side},${side},${side},${n},${iters},${warmup},${time_ms}" >> "${OUT_CSV}"
-    echo "  => ${time_ms} ms"
+    cpu_time_ms="$(echo "${output}" | grep -oE 'cpu_time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
+    if [[ -z "${cpu_time_ms}" ]]; then
+      cpu_time_ms="N/A"
+    fi
+
+    echo "stencil,${variant},${side},${side},${side},${side},${n},${iters},${warmup},${time_ms},${cpu_time_ms}" >> "${OUT_CSV}"
+    echo "  => gpu=${time_ms} ms  cpu=${cpu_time_ms} ms"
     echo ""
   done
 done

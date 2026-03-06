@@ -51,10 +51,10 @@ CUDA_ARCH=75 bash scripts/build.sh
 ./build/bin/stencil_cpu_test
 ./build/bin/stencil_gpu_test
 
-# Single benchmark run
+# Single benchmark run (prints gpu time_ms and cpu_time_ms)
 ./build/bin/stencil_bench --variant opt3 --w 128 --h 128 --d 128 --iters 200
 
-# Full sweep: all variants × cubic grid sizes → CSV
+# Full sweep: all variants × cubic grid sizes → CSV (includes cpu_time_ms column)
 bash scripts/bench_stencil.sh
 # Override: STENCIL_VARIANTS="baseline opt3" STENCIL_SIDES="64 128 256" bash scripts/bench_stencil.sh
 ```
