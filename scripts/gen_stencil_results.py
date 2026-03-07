@@ -94,6 +94,9 @@ def load_csv(path: Path) -> pd.DataFrame:
     df["side"] = pd.to_numeric(df["side"], errors="coerce")
     df["time_ms"] = pd.to_numeric(df["time_ms"], errors="coerce")
 
+    if "cpu_time_ms" in df.columns:
+        df["cpu_time_ms"] = pd.to_numeric(df["cpu_time_ms"], errors="coerce")
+
     df = df.dropna(subset=["variant", "n", "side", "time_ms"]).copy()
     df["n"] = df["n"].astype(int)
     df["side"] = df["side"].astype(int)
@@ -102,7 +105,11 @@ def load_csv(path: Path) -> pd.DataFrame:
 
 
 def compute_speedups(df: pd.DataFrame) -> pd.DataFrame:
-    g = df.groupby(["variant", "side", "n"], as_index=False)["time_ms"].mean()
+    agg_cols = ["time_ms"]
+    if "cpu_time_ms" in df.columns:
+        agg_cols.append("cpu_time_ms")
+
+    g = df.groupby(["variant", "side", "n"], as_index=False)[agg_cols].mean()
 
     baseline = (
         g[g["variant"] == "baseline"][["side", "time_ms"]]
@@ -118,6 +125,11 @@ def pivot_table_time(df: pd.DataFrame) -> pd.DataFrame:
     piv = df.pivot_table(index="side", columns="variant", values="time_ms", aggfunc="mean").sort_index()
     piv = piv[canonical_variant_order(list(piv.columns))]
     piv.index.name = "side"
+
+    if "cpu_time_ms" in df.columns:
+        cpu_by_side = df.groupby("side")["cpu_time_ms"].mean()
+        piv.insert(0, "cpu_ref", cpu_by_side)
+
     return piv
 
 
@@ -133,6 +145,13 @@ def save_plot_time_vs_size(df: pd.DataFrame, out_png: Path) -> None:
         return
 
     plt.figure()
+
+    if "cpu_time_ms" in df.columns:
+        cpu = df.groupby("side")["cpu_time_ms"].mean().reset_index().sort_values("side")
+        cpu = cpu.dropna(subset=["cpu_time_ms"])
+        if not cpu.empty:
+            plt.plot(cpu["side"], cpu["cpu_time_ms"], marker="s", linestyle="--", color="gray", label="cpu_ref")
+
     for v in canonical_variant_order(sorted(df["variant"].unique().tolist())):
         d = df[df["variant"] == v].sort_values("side")
         if d.empty:
@@ -210,6 +229,7 @@ def write_markdown(cfg: Config, df_agg: pd.DataFrame, csv_path: Path) -> None:
     md.append("> Notes:\n")
     md.append("> - 7-point 3D stencil (fixed weights, no radius parameter).\n")
     md.append("> - Grid is cubic: side × side × side voxels.\n")
+    md.append("> - `cpu_ref` is the single-threaded CPU reference (not a GPU variant).\n")
     md.append("> - Speedup is computed as `baseline_time / variant_time`.\n")
     md.append("> - If a row shows `—`, it usually means baseline timing is missing for that size.\n")
 
