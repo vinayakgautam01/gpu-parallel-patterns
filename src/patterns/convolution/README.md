@@ -62,7 +62,7 @@ bash scripts/build.sh
 ./build/bin/conv_cpu_test
 ./build/bin/conv_gpu_test
 
-# Benchmark sweep (all variants × R values × image sizes)
+# Benchmark sweep (all variants × R values × image sizes → CSV with cpu_time_ms)
 bash scripts/bench_conv.sh
 
 # Generate report and plots

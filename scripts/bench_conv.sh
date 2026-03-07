@@ -156,11 +156,55 @@ echo "verify : ${VERIFY}"
 echo ""
 
 # CSV header (exact schema)
-echo "pattern,variant,n,w,h,R,iters,warmup,time_ms" > "${OUT_CSV}"
+echo "pattern,variant,n,w,h,R,iters,warmup,time_ms,cpu_time_ms" > "${OUT_CSV}"
 
 # ---------------------------
-# Sweep
+# Pass 1: CPU reference timing (once per (n, R) pair)
 # ---------------------------
+# CPU time is variant-independent, so we run the first variant at each
+# (n, R) combo and cache cpu_time_ms for reuse in Pass 2. GPU time is discarded.
+declare -A CPU_TIMES
+first_variant="${VARIANTS[0]}"
+first_maxR="$(max_r_for_variant "${first_variant}")"
+
+echo "--- Pass 1: CPU reference (variant=${first_variant}) ---"
+for R in "${RS[@]}"; do
+  if (( R < 1 || R > first_maxR )); then
+    continue
+  fi
+
+  for n in "${SIZES[@]}"; do
+    side="$(isqrt "${n}")"
+    if (( side * side != n )); then
+      continue
+    fi
+
+    iters="$(calc_iters "${n}" "${R}")"
+    warmup="$(calc_warmup "${iters}")"
+
+    args=(--variant "${first_variant}" --n "${n}" --R "${R}" --iters "${iters}" --warmup "${warmup}")
+    if [[ "${VERIFY}" == "1" ]]; then
+      args+=(--verify)
+    fi
+
+    output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"
+
+    cpu_time_ms="$(echo "${output}" | grep -oE 'cpu_time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
+    if [[ -z "${cpu_time_ms}" ]]; then
+      cpu_time_ms="N/A"
+    fi
+    CPU_TIMES["${n}_${R}"]="${cpu_time_ms}"
+
+    echo "  R=${R} ${side}x${side}: cpu=${cpu_time_ms} ms"
+  done
+done
+echo ""
+
+# ---------------------------
+# Pass 2: GPU sweep (all variants, reuse cached CPU times)
+# ---------------------------
+echo "--- Pass 2: GPU sweep (variants: ${VARIANTS[*]}) ---"
+echo ""
 for variant in "${VARIANTS[@]}"; do
   maxR="$(max_r_for_variant "${variant}")"
   if (( maxR == 0 )); then
@@ -176,7 +220,6 @@ for variant in "${VARIANTS[@]}"; do
     for n in "${SIZES[@]}"; do
       side="$(isqrt "${n}")"
       if (( side * side != n )); then
-        # conv_bench assumes square when given only --n
         echo "skip: n=${n} is not a perfect square"
         continue
       fi
@@ -192,13 +235,15 @@ for variant in "${VARIANTS[@]}"; do
       echo "--- conv | ${variant} | R=${R} | n=${n} (${side}x${side}) | iters=${iters} warmup=${warmup} ---"
       output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
-      time_ms="$(echo "${output}" | grep -oE 'time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
+      time_ms="$(echo "${output}" | grep -oE '^time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
       if [[ -z "${time_ms}" ]]; then
         time_ms="N/A"
       fi
 
-      echo "convolution,${variant},${n},${side},${side},${R},${iters},${warmup},${time_ms}" >> "${OUT_CSV}"
-      echo "  => ${time_ms} ms"
+      cpu_time_ms="${CPU_TIMES[${n}_${R}]:-N/A}"
+
+      echo "convolution,${variant},${n},${side},${side},${R},${iters},${warmup},${time_ms},${cpu_time_ms}" >> "${OUT_CSV}"
+      echo "  => gpu=${time_ms} ms"
       echo ""
     done
   done

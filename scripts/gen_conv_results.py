@@ -134,6 +134,9 @@ def load_csv(path: Path) -> pd.DataFrame:
     df["R"] = pd.to_numeric(df["R"], errors="coerce")
     df["time_ms"] = pd.to_numeric(df["time_ms"], errors="coerce")
 
+    if "cpu_time_ms" in df.columns:
+        df["cpu_time_ms"] = pd.to_numeric(df["cpu_time_ms"], errors="coerce")
+
     df = df.dropna(subset=["variant", "n", "R", "time_ms"]).copy()
     df["n"] = df["n"].astype(int)
     df["R"] = df["R"].astype(int)
@@ -165,7 +168,11 @@ def compute_speedups(df: pd.DataFrame) -> pd.DataFrame:
     if "h" in df.columns:
         agg_cols.append("h")
 
-    g = df.groupby(agg_cols, as_index=False)["time_ms"].mean()
+    val_cols = ["time_ms"]
+    if "cpu_time_ms" in df.columns:
+        val_cols.append("cpu_time_ms")
+
+    g = df.groupby(agg_cols, as_index=False)[val_cols].mean()
 
     baseline = (
         g[g["variant"] == "baseline"][["n", "R", "time_ms"]]
@@ -187,6 +194,11 @@ def pivot_table_time(df: pd.DataFrame, R: int) -> pd.DataFrame:
     piv = sub.pivot_table(index=idx, columns="variant", values="time_ms", aggfunc="mean").sort_index()
     piv = piv[canonical_variant_order(list(piv.columns))]
     piv.index.name = idx
+
+    if "cpu_time_ms" in sub.columns:
+        cpu_by_idx = sub.groupby(idx)["cpu_time_ms"].mean()
+        piv.insert(0, "cpu_ref", cpu_by_idx)
+
     return piv
 
 
@@ -211,6 +223,13 @@ def save_plot_time_vs_size(df: pd.DataFrame, R: int, out_png: Path) -> None:
     xcol = "w" if sub["w"].notna().all() else "n"
 
     plt.figure()
+
+    if "cpu_time_ms" in sub.columns:
+        cpu = sub.groupby(xcol)["cpu_time_ms"].mean().reset_index().sort_values(xcol)
+        cpu = cpu.dropna(subset=["cpu_time_ms"])
+        if not cpu.empty:
+            plt.plot(cpu[xcol], cpu["cpu_time_ms"], marker="s", linestyle="--", color="gray", label="cpu_ref")
+
     for v in canonical_variant_order(sorted(sub["variant"].unique().tolist())):
         d = sub[sub["variant"] == v].sort_values(xcol)
         if d.empty:
@@ -289,6 +308,7 @@ def write_markdown(cfg: Config, df_agg: pd.DataFrame, csv_path: Path) -> None:
 
     md.append("## Tables\n")
     md.append("> Notes:\n")
+    md.append("> - `cpu_ref` is the single-threaded CPU reference (not a GPU variant).\n")
     md.append("> - Speedup is computed as `baseline_time / variant_time`.\n")
     md.append("> - If a row shows `—`, it usually means baseline timing is missing for that (n,R).\n")
 
