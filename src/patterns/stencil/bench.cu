@@ -94,8 +94,8 @@ int main(int argc, char** argv) {
         gpp::stencil::stencil3d_cpu_ref(h_in.data(), h_out.data(), nx, ny, nz, w);
     auto cpu_end = Clock::now();
 
-    const double cpu_total_us =
-        std::chrono::duration_cast<std::chrono::microseconds>(cpu_end - cpu_start).count();
+    const double cpu_total_us = static_cast<double>(
+        std::chrono::duration_cast<std::chrono::microseconds>(cpu_end - cpu_start).count());
     const float cpu_avg_ms =
         static_cast<float>(cpu_total_us / 1000.0 / static_cast<double>(cpu_iters));
     const float speedup = cpu_avg_ms / avg_ms;
