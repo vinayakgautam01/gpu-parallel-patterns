@@ -115,18 +115,17 @@ echo "pattern,variant,side,nx,ny,nz,n,iters,warmup,time_ms,cpu_time_ms" > "${OUT
 # ---------------------------
 # Pass 1: CPU reference timing (once per grid size)
 # ---------------------------
-# CPU time is variant-independent, so we run the first variant at each
-# grid size and cache cpu_time_ms for reuse in Pass 2.
+# CPU time is variant-independent, so we run any variant once per grid
+# size and cache cpu_time_ms for reuse in Pass 2. GPU time is discarded.
 declare -A CPU_TIMES
-first_variant="${VARIANTS[0]}"
 
-echo "--- Pass 1: CPU reference (variant=${first_variant}) ---"
+echo "--- Pass 1: CPU reference ---"
 for side in "${SIDES[@]}"; do
   n=$(( side * side * side ))
   iters="$(calc_iters "${side}")"
   warmup="$(calc_warmup "${iters}")"
 
-  args=(--variant "${first_variant}" --w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup "${warmup}")
+  args=(--variant "${VARIANTS[0]}" --w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup "${warmup}")
 
   output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
@@ -136,20 +135,16 @@ for side in "${SIDES[@]}"; do
   fi
   CPU_TIMES["${side}"]="${cpu_time_ms}"
 
-  time_ms="$(echo "${output}" | grep -oE '^time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
-  if [[ -z "${time_ms}" ]]; then
-    time_ms="N/A"
-  fi
-
-  echo "stencil,${first_variant},${side},${side},${side},${side},${n},${iters},${warmup},${time_ms},${cpu_time_ms}" >> "${OUT_CSV}"
-  echo "  ${side}³: gpu=${time_ms} ms  cpu=${cpu_time_ms} ms"
+  echo "  ${side}³: cpu=${cpu_time_ms} ms"
 done
 echo ""
 
 # ---------------------------
-# Pass 2: GPU sweep (remaining variants, reuse cached CPU times)
+# Pass 2: GPU sweep (all variants, reuse cached CPU times)
 # ---------------------------
-for variant in "${VARIANTS[@]:1}"; do
+echo "--- Pass 2: GPU sweep (variants: ${VARIANTS[*]}) ---"
+echo ""
+for variant in "${VARIANTS[@]}"; do
   for side in "${SIDES[@]}"; do
     n=$(( side * side * side ))
     iters="$(calc_iters "${side}")"
@@ -168,7 +163,7 @@ for variant in "${VARIANTS[@]:1}"; do
     cpu_time_ms="${CPU_TIMES[${side}]}"
 
     echo "stencil,${variant},${side},${side},${side},${side},${n},${iters},${warmup},${time_ms},${cpu_time_ms}" >> "${OUT_CSV}"
-    echo "  => gpu=${time_ms} ms  cpu=${cpu_time_ms} ms"
+    echo "  => gpu=${time_ms} ms"
     echo ""
   done
 done
