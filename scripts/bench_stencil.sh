@@ -150,7 +150,7 @@ for variant in "${VARIANTS[@]}"; do
     iters="$(calc_iters "${side}")"
     warmup="$(calc_warmup "${iters}")"
 
-    args=(--variant "${variant}" --w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup "${warmup}")
+    args=(--variant "${variant}" --w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup "${warmup}" --no-cpu)
 
     echo "--- stencil | ${variant} | ${side}³ (n=${n}) | iters=${iters} warmup=${warmup} ---"
     output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"

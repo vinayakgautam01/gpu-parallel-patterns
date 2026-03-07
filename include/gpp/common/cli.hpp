@@ -16,6 +16,7 @@ struct CliArgs {
     int         depth  = 0;     // for 3-D patterns (stencil)
     int         radius = 1;     // filter radius R; pattern-specific max enforced by caller
     uint32_t    seed   = 42;
+    bool        no_cpu = false; // skip CPU reference timing
 };
 
 /// Parse argv into CliArgs. Unrecognised flags are silently skipped.
@@ -72,6 +73,8 @@ inline CliArgs parse_cli(int argc, char** argv) {
             if (v) args.seed = static_cast<uint32_t>(std::atoi(v));
         } else if (match("--verify")) {
             args.bench.verify = true;
+        } else if (match("--no-cpu")) {
+            args.no_cpu = true;
         } else if (match("--help")) {
             std::printf(
                 "Usage: <binary> [options]\n"
@@ -85,6 +88,7 @@ inline CliArgs parse_cli(int argc, char** argv) {
                 "  --warmup       warm-up iterations   (default: %d)\n"
                 "  --seed         RNG seed             (default: %u)\n"
                 "  --verify       compare GPU vs CPU\n"
+                "  --no-cpu       skip CPU reference timing\n"
                 "  --help         show this message\n",
                 args.bench.size, args.bench.iters, args.bench.warmup, args.seed);
             std::exit(0);

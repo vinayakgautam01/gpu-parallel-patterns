@@ -80,35 +80,43 @@ int main(int argc, char** argv) {
     const double bytes_rw = 2.0 * static_cast<double>(n) * sizeof(float);
     const double bw_gb_s  = bytes_rw / (static_cast<double>(avg_ms) * 1e-3) / 1e9;
 
-    // CPU reference timing — auto-scale iters to keep wall-clock practical.
-    // Target ~1M voxel-iterations so large grids don't stall the sweep.
-    const int cpu_iters = std::max(1, std::min(cfg.iters, 1000000 / std::max(n, 1)));
-    std::vector<float> h_out(n);
-
-    // Single warmup pass (populates caches).
-    gpp::stencil::stencil3d_cpu_ref(h_in.data(), h_out.data(), nx, ny, nz, w);
-
-    using Clock = std::chrono::high_resolution_clock;
-    auto cpu_start = Clock::now();
-    for (int i = 0; i < cpu_iters; ++i)
-        gpp::stencil::stencil3d_cpu_ref(h_in.data(), h_out.data(), nx, ny, nz, w);
-    auto cpu_end = Clock::now();
-
-    const double cpu_total_us = static_cast<double>(
-        std::chrono::duration_cast<std::chrono::microseconds>(cpu_end - cpu_start).count());
-    const float cpu_avg_ms =
-        static_cast<float>(cpu_total_us / 1000.0 / static_cast<double>(cpu_iters));
-    const float speedup = cpu_avg_ms / avg_ms;
-
     std::fprintf(stdout, "time_ms=%.4f\n", avg_ms);
-    std::fprintf(stdout, "cpu_time_ms=%.4f\n", cpu_avg_ms);
-    std::fprintf(stderr,
-        "stencil_bench: nx=%d ny=%d nz=%d  n=%d  variant=%d  iters=%d warmup=%d\n"
-        "  gpu avg=%.4f ms  eff_bw=%.2f GB/s\n"
-        "  cpu avg=%.4f ms  (cpu_iters=%d)  speedup=%.1fx\n",
-        nx, ny, nz, n, static_cast<int>(variant), cfg.iters, cfg.warmup,
-        avg_ms, bw_gb_s,
-        cpu_avg_ms, cpu_iters, speedup);
+
+    if (!args.no_cpu) {
+        // CPU reference timing — auto-scale iters to keep wall-clock practical.
+        const int cpu_iters = std::max(1, std::min(cfg.iters, 1000000 / std::max(n, 1)));
+        std::vector<float> h_out(n);
+
+        gpp::stencil::stencil3d_cpu_ref(h_in.data(), h_out.data(), nx, ny, nz, w);
+
+        using Clock = std::chrono::high_resolution_clock;
+        auto cpu_start = Clock::now();
+        for (int i = 0; i < cpu_iters; ++i)
+            gpp::stencil::stencil3d_cpu_ref(h_in.data(), h_out.data(), nx, ny, nz, w);
+        auto cpu_end = Clock::now();
+
+        const double cpu_total_us = static_cast<double>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                cpu_end - cpu_start).count());
+        const float cpu_avg_ms =
+            static_cast<float>(cpu_total_us / 1000.0 / static_cast<double>(cpu_iters));
+        const float speedup = cpu_avg_ms / avg_ms;
+
+        std::fprintf(stdout, "cpu_time_ms=%.4f\n", cpu_avg_ms);
+        std::fprintf(stderr,
+            "stencil_bench: nx=%d ny=%d nz=%d  n=%d  variant=%d  iters=%d warmup=%d\n"
+            "  gpu avg=%.4f ms  eff_bw=%.2f GB/s\n"
+            "  cpu avg=%.4f ms  (cpu_iters=%d)  speedup=%.1fx\n",
+            nx, ny, nz, n, static_cast<int>(variant), cfg.iters, cfg.warmup,
+            avg_ms, bw_gb_s,
+            cpu_avg_ms, cpu_iters, speedup);
+    } else {
+        std::fprintf(stderr,
+            "stencil_bench: nx=%d ny=%d nz=%d  n=%d  variant=%d  iters=%d warmup=%d\n"
+            "  gpu avg=%.4f ms  eff_bw=%.2f GB/s\n",
+            nx, ny, nz, n, static_cast<int>(variant), cfg.iters, cfg.warmup,
+            avg_ms, bw_gb_s);
+    }
 
     CUDA_CHECK(cudaFree(d_in));
     CUDA_CHECK(cudaFree(d_out));

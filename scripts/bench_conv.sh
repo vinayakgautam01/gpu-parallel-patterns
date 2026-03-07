@@ -227,7 +227,7 @@ for variant in "${VARIANTS[@]}"; do
       iters="$(calc_iters "${n}" "${R}")"
       warmup="$(calc_warmup "${iters}")"
 
-      args=(--variant "${variant}" --n "${n}" --R "${R}" --iters "${iters}" --warmup "${warmup}")
+      args=(--variant "${variant}" --n "${n}" --R "${R}" --iters "${iters}" --warmup "${warmup}" --no-cpu)
       if [[ "${VERIFY}" == "1" ]]; then
         args+=(--verify)
       fi
