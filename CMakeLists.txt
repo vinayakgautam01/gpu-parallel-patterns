@@ -276,3 +276,50 @@ target_include_directories(scan_bench PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 target_link_libraries(scan_bench PRIVATE scan_kernels gpp_common)
+
+# ---------------------------------------------------------------------------
+# Merge pattern
+# ---------------------------------------------------------------------------
+
+# GPU kernel implementations — compiled once, linked by test + bench
+add_library(merge_kernels
+    src/patterns/merge/baseline.cu
+    src/patterns/merge/opt1_tiled.cu
+    src/patterns/merge/opt2_circular_buf.cu
+    src/patterns/merge/dispatch.cu
+)
+target_include_directories(merge_kernels PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/patterns/merge
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(merge_kernels PUBLIC gpp_common)
+
+# CPU-only correctness test (no GPU required)
+add_executable(merge_cpu_test
+    src/patterns/merge/cpu_ref_test.cpp
+)
+target_include_directories(merge_cpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/merge
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(merge_cpu_test PRIVATE gpp_common)
+
+# GPU correctness test — validates all variants against merge_cpu_ref.
+add_executable(merge_gpu_test
+    src/patterns/merge/gpu_test.cu
+)
+target_include_directories(merge_gpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/merge
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(merge_gpu_test PRIVATE merge_kernels gpp_common)
+
+# Benchmark binary — picked up by scripts/bench.sh (*_bench glob).
+add_executable(merge_bench
+    src/patterns/merge/bench.cu
+)
+target_include_directories(merge_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/merge
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(merge_bench PRIVATE merge_kernels gpp_common)
