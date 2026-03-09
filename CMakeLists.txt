@@ -179,6 +179,16 @@ target_include_directories(hist_bench PRIVATE
 )
 target_link_libraries(hist_bench PRIVATE hist_kernels gpp_common)
 
+# CPU timing binary for two-pass benchmark scripts.
+add_executable(hist_cpu_timing
+    src/patterns/histogram/cpu_bench.cpp
+)
+target_include_directories(hist_cpu_timing PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/histogram
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(hist_cpu_timing PRIVATE gpp_common)
+
 # ---------------------------------------------------------------------------
 # Reduce pattern (sum reduction)
 # ---------------------------------------------------------------------------

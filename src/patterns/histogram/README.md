@@ -58,6 +58,7 @@ Baseline: global atomics
 histogram/
 ├── cpu_ref.hpp                  # Single-threaded CPU reference (correctness oracle)
 ├── cpu_ref_test.cpp             # CPU reference cross-check against independent impl
+├── cpu_bench.cpp                # CPU-only timing binary for two-pass sweeps
 ├── kernels.hpp                  # Public API (run() dispatch)
 ├── dispatch.cu                  # Routes Variant enum to per-file launchers
 ├── baseline_global_atomics.cu   # Naive: one thread per char, global atomicAdd
@@ -82,9 +83,14 @@ CUDA_ARCH=75 bash scripts/build.sh
 # Single benchmark run
 ./build/bin/hist_bench --variant opt3 --n 16777216 --iters 200
 
-# Full sweep: all variants × sizes → CSV
+# Full sweep: pass1 CPU timing by size + pass2 GPU timing by variant × size
+# Output CSV includes both time_ms and cpu_time_ms
 bash scripts/bench_hist.sh
 # Override: HIST_VARIANTS="baseline opt3 opt4" HIST_SIZES="1048576 16777216 268435456" bash scripts/bench_hist.sh
+
+# Generate report and plots
+pip install pandas matplotlib
+python3 scripts/gen_hist_results.py
 
 # Or use the generic sweep (runs all patterns)
 bash scripts/bench.sh hist
