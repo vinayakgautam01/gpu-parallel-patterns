@@ -297,6 +297,16 @@ target_include_directories(scan_bench PRIVATE
 )
 target_link_libraries(scan_bench PRIVATE scan_kernels gpp_common)
 
+# CPU timing binary for two-pass benchmark scripts.
+add_executable(scan_cpu_timing
+    src/patterns/scan/cpu_bench.cpp
+)
+target_include_directories(scan_cpu_timing PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/scan
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(scan_cpu_timing PRIVATE gpp_common)
+
 # ---------------------------------------------------------------------------
 # Merge pattern
 # ---------------------------------------------------------------------------

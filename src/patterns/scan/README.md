@@ -59,6 +59,7 @@ Baseline: naive parallel scan — O(N²) work
 scan/
 ├── cpu_ref.hpp                  # Sequential inclusive prefix sum O(N) — correctness oracle
 ├── cpu_ref_test.cpp             # CPU reference cross-check against double-precision impl
+├── cpu_bench.cpp                # CPU-only timing binary for two-pass sweeps
 ├── kernels.hpp                  # Public API (run() dispatch)
 ├── dispatch.cu                  # Routes Variant enum to per-file launchers
 ├── baseline.cu                  # Naive: each thread sums input[0..i], O(N²)
@@ -83,9 +84,14 @@ CUDA_ARCH=75 bash scripts/build.sh
 # Single benchmark run
 ./build/bin/scan_bench --variant opt4 --n 16777216 --iters 200
 
-# Full sweep: all variants × sizes → CSV
+# Full sweep: pass1 CPU timing by size + pass2 GPU timing by variant × size
+# Output CSV includes time_ms, eff_bw_gbs, and cpu_time_ms
 bash scripts/bench_scan.sh
 # Override: SCAN_VARIANTS="baseline opt1 opt4" SCAN_SIZES="1048576 16777216" bash scripts/bench_scan.sh
+
+# Generate report and plots
+pip install pandas matplotlib
+python3 scripts/gen_scan_results.py
 
 # Or use the generic sweep (runs all patterns)
 bash scripts/bench.sh scan
