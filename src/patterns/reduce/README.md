@@ -46,6 +46,7 @@ Baseline: divergent-warp reduction tree
 reduce/
 ├── cpu_ref.hpp                  # Single-threaded CPU reference (correctness oracle)
 ├── cpu_ref_test.cpp             # CPU reference cross-check against double-precision impl
+├── cpu_bench.cpp                # CPU-only timing binary for two-pass sweeps
 ├── kernels.hpp                  # Public API (run() dispatch)
 ├── dispatch.cu                  # Routes Variant enum to per-file launchers
 ├── baseline.cu                  # Divergent-warp stride-doubling tree
@@ -69,9 +70,14 @@ CUDA_ARCH=75 bash scripts/build.sh
 # Single benchmark run
 ./build/bin/reduce_bench --variant opt3 --n 16777216 --iters 200
 
-# Full sweep: all variants × sizes → CSV
+# Full sweep: pass1 CPU timing by size + pass2 GPU timing by variant × size
+# Output CSV includes both time_ms and cpu_time_ms
 bash scripts/bench_reduce.sh
 # Override: REDUCE_VARIANTS="baseline opt1 opt3" REDUCE_SIZES="1048576 16777216" bash scripts/bench_reduce.sh
+
+# Generate report and plots
+pip install pandas matplotlib
+python3 scripts/gen_reduce_results.py
 
 # Or use the generic sweep (runs all patterns)
 bash scripts/bench.sh reduce

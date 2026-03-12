@@ -237,6 +237,16 @@ target_include_directories(reduce_bench PRIVATE
 )
 target_link_libraries(reduce_bench PRIVATE reduce_kernels gpp_common)
 
+# CPU timing binary for two-pass benchmark scripts.
+add_executable(reduce_cpu_timing
+    src/patterns/reduce/cpu_bench.cpp
+)
+target_include_directories(reduce_cpu_timing PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/reduce
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(reduce_cpu_timing PRIVATE gpp_common)
+
 # ---------------------------------------------------------------------------
 # Scan pattern (inclusive prefix sum)
 # ---------------------------------------------------------------------------
