@@ -33,12 +33,13 @@ static constexpr int FLAG_X = 0;
 static constexpr int FLAG_A = 1;
 static constexpr int FLAG_P = 2;
 
-__global__ void kernel_single_pass(const float* __restrict__ input,
-                                   float* __restrict__ output,
+__global__ void kernel_single_pass(const float* input,
+                                   float* output,
                                    int n,
                                    int* __restrict__ tile_counter,
                                    int* __restrict__ tile_flags,
-                                   float* __restrict__ tile_values) {
+                                   float* __restrict__ tile_aggs,
+                                   float* __restrict__ tile_prefixes) {
     __shared__ int s_tile_idx;
     extern __shared__ float sdata[];
 
@@ -71,13 +72,13 @@ __global__ void kernel_single_pass(const float* __restrict__ input,
     if (tid == 0) {
         if (tile == 0) {
             // First tile: its scan is already the global prefix.
-            tile_values[tile] = block_aggregate;
+            tile_prefixes[tile] = block_aggregate;
             __threadfence();
             atomicExch(&tile_flags[tile], FLAG_P);
             s_running_prefix = 0.0f;
         } else {
-            // Publish local aggregate.
-            tile_values[tile] = block_aggregate;
+            // Publish local aggregate (write-once, never overwritten).
+            tile_aggs[tile] = block_aggregate;
             __threadfence();
             atomicExch(&tile_flags[tile], FLAG_A);
 
@@ -89,18 +90,17 @@ __global__ void kernel_single_pass(const float* __restrict__ input,
                     flag = atomicAdd(&tile_flags[prev], 0);
                 }
                 __threadfence();
-                float val = tile_values[prev];
                 if (flag == FLAG_P) {
-                    running += val;
+                    running += tile_prefixes[prev];
                     break;
                 }
-                running += val;
+                running += tile_aggs[prev];
             }
 
             s_running_prefix = running;
 
             // Publish inclusive prefix for this tile.
-            tile_values[tile] = running + block_aggregate;
+            tile_prefixes[tile] = running + block_aggregate;
             __threadfence();
             atomicExch(&tile_flags[tile], FLAG_P);
         }
@@ -123,27 +123,30 @@ void scan_opt4(const float* d_in, float* d_out,
 
     const int num_tiles = gpp::div_up(n, SP_BLOCK);
 
-    int* d_tile_counter = nullptr;
-    int* d_tile_flags = nullptr;
-    float* d_tile_values = nullptr;
+    int* d_tile_counter    = nullptr;
+    int* d_tile_flags      = nullptr;
+    float* d_tile_aggs     = nullptr;
+    float* d_tile_prefixes = nullptr;
 
-    CUDA_CHECK(cudaMallocAsync(&d_tile_counter, sizeof(int), stream));
-    CUDA_CHECK(cudaMallocAsync(&d_tile_flags, num_tiles * sizeof(int), stream));
-    CUDA_CHECK(cudaMallocAsync(&d_tile_values, num_tiles * sizeof(float), stream));
+    CUDA_CHECK(cudaMallocAsync(&d_tile_counter,  sizeof(int), stream));
+    CUDA_CHECK(cudaMallocAsync(&d_tile_flags,    num_tiles * sizeof(int), stream));
+    CUDA_CHECK(cudaMallocAsync(&d_tile_aggs,     num_tiles * sizeof(float), stream));
+    CUDA_CHECK(cudaMallocAsync(&d_tile_prefixes, num_tiles * sizeof(float), stream));
 
     CUDA_CHECK(cudaMemsetAsync(d_tile_counter, 0, sizeof(int), stream));
-    CUDA_CHECK(cudaMemsetAsync(d_tile_flags, 0, num_tiles * sizeof(int), stream));
+    CUDA_CHECK(cudaMemsetAsync(d_tile_flags,   0, num_tiles * sizeof(int), stream));
 
     const size_t smem = SP_BLOCK * sizeof(float);
 
     kernel_single_pass<<<num_tiles, SP_BLOCK, smem, stream>>>(
         d_in, d_out, n,
-        d_tile_counter, d_tile_flags, d_tile_values);
+        d_tile_counter, d_tile_flags, d_tile_aggs, d_tile_prefixes);
     CUDA_CHECK_LAST();
 
     CUDA_CHECK(cudaFreeAsync(d_tile_counter, stream));
     CUDA_CHECK(cudaFreeAsync(d_tile_flags, stream));
-    CUDA_CHECK(cudaFreeAsync(d_tile_values, stream));
+    CUDA_CHECK(cudaFreeAsync(d_tile_aggs, stream));
+    CUDA_CHECK(cudaFreeAsync(d_tile_prefixes, stream));
 }
 
 }  // namespace gpp::scan
