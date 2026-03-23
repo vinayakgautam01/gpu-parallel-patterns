@@ -62,6 +62,7 @@ __global__ void kernel_single_pass(const float* input,
         __syncthreads();
         sdata[tid] += val;
     }
+    __syncthreads();
 
     float block_aggregate = sdata[SP_BLOCK - 1];
     float local_val = sdata[tid];
