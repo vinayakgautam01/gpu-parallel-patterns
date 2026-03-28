@@ -353,3 +353,62 @@ target_include_directories(merge_bench PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 target_link_libraries(merge_bench PRIVATE merge_kernels gpp_common)
+
+# ---------------------------------------------------------------------------
+# Sort pattern
+# ---------------------------------------------------------------------------
+
+# GPU kernel implementations — compiled once, linked by test + bench
+add_library(sort_kernels
+    src/patterns/sort/exclusive_scan_uint.cu
+    src/patterns/sort/baseline_radix.cu
+    src/patterns/sort/opt1_mem_radix.cu
+    src/patterns/sort/opt2_coarsened_radix.cu
+    src/patterns/sort/bitonic.cu
+    src/patterns/sort/dispatch.cu
+)
+target_include_directories(sort_kernels PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/patterns/sort
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(sort_kernels PUBLIC gpp_common)
+
+# CPU-only correctness test (no GPU required)
+add_executable(sort_cpu_test
+    src/patterns/sort/cpu_ref_test.cpp
+)
+target_include_directories(sort_cpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/sort
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(sort_cpu_test PRIVATE gpp_common)
+
+# CPU timing binary for two-pass benchmark scripts.
+add_executable(sort_cpu_timing
+    src/patterns/sort/cpu_bench.cpp
+)
+target_include_directories(sort_cpu_timing PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/sort
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(sort_cpu_timing PRIVATE gpp_common)
+
+# GPU correctness test — validates baseline radix sort against sort_cpu_ref.
+add_executable(sort_gpu_test
+    src/patterns/sort/gpu_test.cu
+)
+target_include_directories(sort_gpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/sort
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(sort_gpu_test PRIVATE sort_kernels gpp_common)
+
+# Benchmark binary — picked up by scripts/bench.sh (*_bench glob).
+add_executable(sort_bench
+    src/patterns/sort/bench.cu
+)
+target_include_directories(sort_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/sort
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(sort_bench PRIVATE sort_kernels gpp_common)
