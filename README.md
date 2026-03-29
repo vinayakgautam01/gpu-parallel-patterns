@@ -10,7 +10,7 @@ Production-ready CUDA kernel optimization patterns — from naive baselines to h
 
 Most CUDA tutorials stop at "hello world" kernels. Real GPU performance requires understanding memory hierarchies, warp-level primitives, and occupancy trade-offs across different algorithmic patterns.
 
-This repository implements **6 fundamental parallel patterns**, each with a naive baseline and 2–4 progressively optimized variants. Every variant includes:
+This repository implements **8 fundamental parallel patterns**, each with a naive baseline and 2–4 progressively optimized variants. Every variant includes:
 
 - **Correctness tests** — GPU output validated against a CPU reference oracle
 - **Benchmark sweeps** — automated timing across input sizes with CSV output
@@ -26,6 +26,8 @@ This repository implements **6 fundamental parallel patterns**, each with a naiv
 | [Reduction](src/patterns/reduce/) | 4 | Contiguous active threads, thread coarsening, warp shuffle (`__shfl_down_sync`) |
 | [Prefix Sum (Scan)](src/patterns/scan/) | 5 | Kogge-Stone, Brent-Kung, coarsened Brent-Kung, single-pass decoupled look-back |
 | [Merge](src/patterns/merge/) | 3 | Co-rank partitioning, shared-memory tiling, circular buffering |
+| [GEMM](src/patterns/gemm/) | 2 | Shared-memory tiling with phased loading (PMPP style) |
+| [Sort](src/patterns/sort/) | 4 | Radix sort, memory-efficient radix, coarsened radix, bitonic sort |
 
 Each pattern lives in `src/patterns/<name>/` with its own [README](src/patterns/) detailing the optimization progression, file layout, and testing strategy.
 
@@ -39,6 +41,7 @@ Each pattern lives in `src/patterns/<name>/` with its own [README](src/patterns/
 - **Work-efficient algorithms**: Brent-Kung scan (O(N) work) vs Kogge-Stone (O(N log N) work)
 - **Decoupled look-back**: single-pass prefix scan without inter-kernel synchronization
 - **Separable decomposition**: 2D convolution → two 1D passes for O(R²) → O(R) complexity
+- **Tiled matrix multiplication**: phased shared-memory loading to reduce global memory traffic by ~TILE_WIDTH
 
 ## Repository structure
 
@@ -53,7 +56,9 @@ gpu-parallel-patterns/
 │       ├── histogram/       # Letter-frequency histogram (5 variants)
 │       ├── reduce/          # Sum reduction (4 variants)
 │       ├── scan/            # Inclusive prefix sum (5 variants)
-│       └── merge/           # Parallel sorted merge (3 variants)
+│       ├── merge/           # Parallel sorted merge (3 variants)
+│       ├── gemm/            # Matrix multiplication (2 variants)
+│       └── sort/            # Parallel sorting (4 variants)
 ├── scripts/                 # Build, test, benchmark, profiling, and plotting scripts
 ├── benchmarks/              # Sweep configs and raw CSV results
 ├── docs/plots/              # Generated benchmark reports and charts
@@ -121,11 +126,13 @@ bash scripts/bench_scan.sh
 bash scripts/bench_hist.sh
 bash scripts/bench_stencil.sh
 bash scripts/bench_merge.sh
+bash scripts/bench_gemm.sh
 
 # Generate plots and markdown report from latest CSV
 pip install pandas matplotlib
 python3 scripts/gen_conv_results.py
 python3 scripts/gen_reduce_results.py
+python3 scripts/gen_gemm_results.py
 ```
 
 ### Profile with Nsight

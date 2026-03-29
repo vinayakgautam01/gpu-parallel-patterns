@@ -20,6 +20,23 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(cmake/cuda_warnings.cmake)
 include(cmake/sanitizers.cmake)
 
+# ---------------------------------------------------------------------------
+# External dependencies
+# ---------------------------------------------------------------------------
+
+# cuBLAS (ships with CUDA Toolkit)
+find_package(CUDAToolkit REQUIRED)
+
+# CUTLASS (header-only, fetched via FetchContent)
+include(FetchContent)
+FetchContent_Declare(cutlass
+    GIT_REPOSITORY https://github.com/NVIDIA/cutlass.git
+    GIT_TAG        v3.5.1
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(cutlass)
+
+# ---------------------------------------------------------------------------
 # Shared utilities library (compiled once, linked by all pattern binaries)
 add_library(gpp_common
     src/common/checks.cu
@@ -442,3 +459,99 @@ target_include_directories(sort_bench PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 target_link_libraries(sort_bench PRIVATE sort_kernels gpp_common)
+
+# ---------------------------------------------------------------------------
+# GEMM pattern (matrix multiplication)
+# ---------------------------------------------------------------------------
+
+# GPU kernel implementations — compiled once, linked by test + bench
+add_library(gemm_kernels
+    src/patterns/gemm/baseline.cu
+    src/patterns/gemm/opt1_tiled.cu
+    src/patterns/gemm/dispatch.cu
+)
+target_include_directories(gemm_kernels PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_kernels PUBLIC gpp_common)
+
+# CPU-only correctness test (no GPU required)
+add_executable(gemm_cpu_test
+    src/patterns/gemm/cpu_ref_test.cpp
+)
+target_include_directories(gemm_cpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_cpu_test PRIVATE gpp_common)
+
+# GPU correctness test — validates all variants against matmul_cpu_ref.
+add_executable(gemm_gpu_test
+    src/patterns/gemm/gpu_test.cu
+)
+target_include_directories(gemm_gpu_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_gpu_test PRIVATE gemm_kernels gpp_common)
+
+# Benchmark binary — picked up by scripts/bench.sh (*_bench glob).
+add_executable(gemm_bench
+    src/patterns/gemm/bench.cu
+)
+target_include_directories(gemm_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_bench PRIVATE gemm_kernels gpp_common)
+
+# CPU timing binary for two-pass benchmark scripts.
+add_executable(gemm_cpu_timing
+    src/patterns/gemm/cpu_bench.cpp
+)
+target_include_directories(gemm_cpu_timing PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_cpu_timing PRIVATE gpp_common)
+
+# cuBLAS GEMM benchmark (standalone, for reference comparison)
+add_executable(gemm_cublas_bench
+    src/patterns/gemm/cublas_bench.cu
+)
+target_include_directories(gemm_cublas_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_cublas_bench PRIVATE gpp_common CUDA::cublas)
+
+# cuBLAS GEMM correctness test
+add_executable(gemm_cublas_test
+    src/patterns/gemm/cublas_test.cu
+)
+target_include_directories(gemm_cublas_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_cublas_test PRIVATE gpp_common CUDA::cublas)
+
+# CUTLASS GEMM benchmark (standalone, for reference comparison)
+add_executable(gemm_cutlass_bench
+    src/patterns/gemm/cutlass_bench.cu
+)
+target_include_directories(gemm_cutlass_bench PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_cutlass_bench PRIVATE gpp_common CUTLASS)
+
+# CUTLASS GEMM correctness test
+add_executable(gemm_cutlass_test
+    src/patterns/gemm/cutlass_test.cu
+)
+target_include_directories(gemm_cutlass_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/gemm
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(gemm_cutlass_test PRIVATE gpp_common CUTLASS)
