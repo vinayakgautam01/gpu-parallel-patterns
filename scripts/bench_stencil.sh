@@ -131,7 +131,7 @@ for side in "${SIDES[@]}"; do
   iters="$(calc_iters "${side}")"
   warmup="$(calc_warmup "${iters}")"
 
-  args=(--w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup "${warmup}")
+  args=(--w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup 0)
 
   output="$("${CPU_BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 

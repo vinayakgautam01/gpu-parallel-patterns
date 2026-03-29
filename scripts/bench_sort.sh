@@ -129,7 +129,7 @@ for n in "${SIZES[@]}"; do
   iters="$(calc_iters "${n}")"
   warmup="$(calc_warmup "${iters}")"
 
-  args=(--n "${n}" --iters "${iters}" --warmup "${warmup}")
+  args=(--n "${n}" --iters "${iters}" --warmup 0)
   output="$("${CPU_BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
   cpu_time_ms="$(echo "${output}" | grep -oE '^cpu_time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"

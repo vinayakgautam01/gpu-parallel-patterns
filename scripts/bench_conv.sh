@@ -184,7 +184,7 @@ for R in "${RS[@]}"; do
     iters="$(calc_iters "${n}" "${R}")"
     warmup="$(calc_warmup "${iters}")"
 
-    args=(--n "${n}" --R "${R}" --iters "${iters}" --warmup "${warmup}")
+    args=(--n "${n}" --R "${R}" --iters "${iters}" --warmup 0)
 
     output="$("${CPU_BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
