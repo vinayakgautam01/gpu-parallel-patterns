@@ -120,24 +120,27 @@ __global__ void kernel_merge_opt2_circular(const int* __restrict__ A, int m,
 
     int A_S_start = 0;
     int B_S_start = 0;
-    int A_S_consumed = tile_size;
-    int B_S_consumed = tile_size;
+    int A_S_valid = 0;
+    int B_S_valid = 0;
 
     for (int counter = 0; counter < total_iteration; ++counter) {
-        for (int i = 0; i < A_S_consumed; i += blockDim.x) {
-            if (i + static_cast<int>(threadIdx.x) < A_length - A_consumed &&
-                i + static_cast<int>(threadIdx.x) < A_S_consumed) {
-                A_S[(A_S_start + (tile_size - A_S_consumed) + i +
-                     static_cast<int>(threadIdx.x)) % tile_size] =
-                    A[A_curr + A_consumed + i + static_cast<int>(threadIdx.x)];
+        int a_tile_len = hd_min(tile_size, A_length - A_consumed);
+        int b_tile_len = hd_min(tile_size, B_length - B_consumed);
+        int A_to_load = a_tile_len - A_S_valid;
+        int B_to_load = b_tile_len - B_S_valid;
+
+        for (int i = 0; i < A_to_load; i += blockDim.x) {
+            int t = i + static_cast<int>(threadIdx.x);
+            if (t < A_to_load) {
+                A_S[(A_S_start + A_S_valid + t) % tile_size] =
+                    A[A_curr + A_consumed + A_S_valid + t];
             }
         }
-        for (int i = 0; i < B_S_consumed; i += blockDim.x) {
-            if (i + static_cast<int>(threadIdx.x) < B_length - B_consumed &&
-                i + static_cast<int>(threadIdx.x) < B_S_consumed) {
-                B_S[(B_S_start + (tile_size - B_S_consumed) + i +
-                     static_cast<int>(threadIdx.x)) % tile_size] =
-                    B[B_curr + B_consumed + i + static_cast<int>(threadIdx.x)];
+        for (int i = 0; i < B_to_load; i += blockDim.x) {
+            int t = i + static_cast<int>(threadIdx.x);
+            if (t < B_to_load) {
+                B_S[(B_S_start + B_S_valid + t) % tile_size] =
+                    B[B_curr + B_consumed + B_S_valid + t];
             }
         }
         __syncthreads();
@@ -146,9 +149,6 @@ __global__ void kernel_merge_opt2_circular(const int* __restrict__ A, int m,
         int c_next = (threadIdx.x + 1) * (tile_size / blockDim.x);
         c_curr = (c_curr <= C_length - C_completed) ? c_curr : C_length - C_completed;
         c_next = (c_next <= C_length - C_completed) ? c_next : C_length - C_completed;
-
-        int a_tile_len = hd_min(tile_size, A_length - A_consumed);
-        int b_tile_len = hd_min(tile_size, B_length - B_consumed);
 
         int a_curr = co_rank_circular(c_curr, A_S, a_tile_len,
                                       B_S, b_tile_len,
@@ -167,18 +167,20 @@ __global__ void kernel_merge_opt2_circular(const int* __restrict__ A, int m,
                                   tile_size);
 
         int tile_out = hd_min(tile_size, C_length - C_completed);
-        A_S_consumed = co_rank_circular(tile_out,
-                                        A_S, a_tile_len,
-                                        B_S, b_tile_len,
-                                        A_S_start, B_S_start, tile_size);
-        B_S_consumed = tile_out - A_S_consumed;
+        int A_S_consumed = co_rank_circular(tile_out,
+                                            A_S, a_tile_len,
+                                            B_S, b_tile_len,
+                                            A_S_start, B_S_start, tile_size);
+        int B_S_consumed = tile_out - A_S_consumed;
 
         A_consumed += A_S_consumed;
+        B_consumed += B_S_consumed;
         C_completed += tile_out;
-        B_consumed = C_completed - A_consumed;
 
         A_S_start = (A_S_start + A_S_consumed) % tile_size;
         B_S_start = (B_S_start + B_S_consumed) % tile_size;
+        A_S_valid = a_tile_len - A_S_consumed;
+        B_S_valid = b_tile_len - B_S_consumed;
 
         __syncthreads();
     }
