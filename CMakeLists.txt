@@ -28,13 +28,20 @@ include(cmake/sanitizers.cmake)
 find_package(CUDAToolkit REQUIRED)
 
 # CUTLASS (header-only, fetched via FetchContent)
+# We only need headers, not the full library build (which takes 15+ minutes)
 include(FetchContent)
 FetchContent_Declare(cutlass
     GIT_REPOSITORY https://github.com/NVIDIA/cutlass.git
     GIT_TAG        v3.5.1
     GIT_SHALLOW    TRUE
 )
-FetchContent_MakeAvailable(cutlass)
+FetchContent_Populate(cutlass)
+# Create interface target for header-only usage
+add_library(CUTLASS INTERFACE)
+target_include_directories(CUTLASS INTERFACE
+    ${cutlass_SOURCE_DIR}/include
+    ${cutlass_SOURCE_DIR}/tools/util/include
+)
 
 # ---------------------------------------------------------------------------
 # Shared utilities library (compiled once, linked by all pattern binaries)
