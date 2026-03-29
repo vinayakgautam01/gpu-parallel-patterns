@@ -82,6 +82,16 @@ target_include_directories(conv_bench PRIVATE
 )
 target_link_libraries(conv_bench PRIVATE conv_kernels gpp_common)
 
+# CPU timing binary for two-pass benchmark scripts.
+add_executable(conv_cpu_timing
+    src/patterns/convolution/cpu_bench.cpp
+)
+target_include_directories(conv_cpu_timing PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/convolution
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(conv_cpu_timing PRIVATE gpp_common)
+
 # ---------------------------------------------------------------------------
 # Stencil pattern (7-point 3D)
 # ---------------------------------------------------------------------------
@@ -129,6 +139,16 @@ target_include_directories(stencil_bench PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 target_link_libraries(stencil_bench PRIVATE stencil_kernels gpp_common)
+
+# CPU timing binary for two-pass benchmark scripts.
+add_executable(stencil_cpu_timing
+    src/patterns/stencil/cpu_bench.cpp
+)
+target_include_directories(stencil_cpu_timing PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/stencil
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(stencil_cpu_timing PRIVATE gpp_common)
 
 # ---------------------------------------------------------------------------
 # Histogram pattern
@@ -353,6 +373,16 @@ target_include_directories(merge_bench PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 target_link_libraries(merge_bench PRIVATE merge_kernels gpp_common)
+
+# CPU timing binary for two-pass benchmark scripts.
+add_executable(merge_cpu_timing
+    src/patterns/merge/cpu_bench.cpp
+)
+target_include_directories(merge_cpu_timing PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/patterns/merge
+    ${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(merge_cpu_timing PRIVATE gpp_common)
 
 # ---------------------------------------------------------------------------
 # Sort pattern

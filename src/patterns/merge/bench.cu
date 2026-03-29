@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
@@ -61,20 +60,14 @@ int main(int argc, char** argv) {
     const float avg_ms = timer.elapsed_ms() / static_cast<float>(cfg.iters);
     std::fprintf(stdout, "time_ms=%.4f\n", avg_ms);
 
-    std::vector<int> h_out;
-    if (cfg.verify || !args.no_cpu) {
-        h_out.resize(static_cast<size_t>(total));
+    if (cfg.verify) {
+        std::vector<int> h_out(static_cast<size_t>(total));
         CUDA_CHECK(cudaMemcpy(h_out.data(), d_C, static_cast<size_t>(total) * sizeof(int),
                               cudaMemcpyDeviceToHost));
-    }
 
-    std::vector<int> h_ref;
-    if (!args.no_cpu || cfg.verify) {
-        h_ref.resize(static_cast<size_t>(total));
+        std::vector<int> h_ref(static_cast<size_t>(total));
         gpp::merge::merge_cpu_ref(h_A.data(), m, h_B.data(), n, h_ref.data());
-    }
 
-    if (cfg.verify) {
         auto cmp = gpp::compare_arrays_int(h_ref.data(), h_out.data(), total);
         gpp::print_compare(cmp, "merge_bench_verify");
         if (!cmp.ok) {
@@ -85,36 +78,10 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (!args.no_cpu) {
-        const int cpu_iters = std::max(1, std::min(cfg.iters, 80000000 / std::max(total, 1)));
-        std::vector<int> tmp_out(static_cast<size_t>(total));
-
-        using Clock = std::chrono::high_resolution_clock;
-        const auto cpu_start = Clock::now();
-        for (int i = 0; i < cpu_iters; ++i) {
-            gpp::merge::merge_cpu_ref(h_A.data(), m, h_B.data(), n, tmp_out.data());
-        }
-        const auto cpu_end = Clock::now();
-
-        const double cpu_total_us = static_cast<double>(
-            std::chrono::duration_cast<std::chrono::microseconds>(cpu_end - cpu_start).count());
-        const float cpu_avg_ms =
-            static_cast<float>(cpu_total_us / 1000.0 / static_cast<double>(cpu_iters));
-        const float speedup = cpu_avg_ms / avg_ms;
-
-        std::fprintf(stdout, "cpu_time_ms=%.4f\n", cpu_avg_ms);
-        std::fprintf(stderr,
-            "merge_bench: n=%d (m=%d, n=%d) variant=%d iters=%d warmup=%d\n"
-            "  gpu avg=%.4f ms\n"
-            "  cpu avg=%.4f ms (cpu_iters=%d) speedup=%.1fx\n",
-            total, m, n, static_cast<int>(variant), cfg.iters, cfg.warmup,
-            avg_ms, cpu_avg_ms, cpu_iters, speedup);
-    } else {
-        std::fprintf(stderr,
-            "merge_bench: n=%d (m=%d, n=%d) variant=%d iters=%d warmup=%d\n"
-            "  gpu avg=%.4f ms\n",
-            total, m, n, static_cast<int>(variant), cfg.iters, cfg.warmup, avg_ms);
-    }
+    std::fprintf(stderr,
+        "merge_bench: n=%d (m=%d, n=%d) variant=%d iters=%d warmup=%d\n"
+        "  gpu avg=%.4f ms\n",
+        total, m, n, static_cast<int>(variant), cfg.iters, cfg.warmup, avg_ms);
 
     CUDA_CHECK(cudaFree(d_A));
     CUDA_CHECK(cudaFree(d_B));

@@ -4,8 +4,8 @@
 //   conv_bench --variant opt2 --n 1048576 --R 1 --iters 200 --warmup 20
 //   conv_bench --variant opt4 --w 1024 --h 1024 --R 2 --iters 100
 //
-// Prints "time_ms=<avg>" and "cpu_time_ms=<avg>" to stdout
-// (required by scripts/bench_conv.sh).
+// Prints "time_ms=<avg>" to stdout (required by scripts/bench_conv.sh).
+// CPU reference timing lives in cpu_bench.cpp (conv_cpu_timing binary).
 //
 // Design notes:
 //   - d_in / d_out / d_filter (or d_h_filt + d_v_filt for Opt4) are allocated
@@ -15,8 +15,6 @@
 //   - Opt4 uses static persistent scratch buffers for intermediate transposes;
 //     no cudaMalloc/cudaFree occurs inside the timed loop.
 
-#include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -28,7 +26,6 @@
 #include "gpp/common/cli.hpp"
 #include "gpp/common/rng.hpp"
 #include "gpp/common/timers.cuh"
-#include "cpu_ref.hpp"
 #include "kernels.hpp"
 
 int main(int argc, char** argv) {
@@ -122,44 +119,11 @@ int main(int argc, char** argv) {
 
     std::fprintf(stdout, "time_ms=%.4f\n", avg_ms);
 
-    if (!args.no_cpu) {
-        // CPU reference timing — auto-scale iters to keep wall-clock practical.
-        const long long pixel_ops = static_cast<long long>(w) * h * k * k;
-        const int cpu_iters = std::max(1, std::min(cfg.iters,
-            static_cast<int>(1000000LL / std::max(pixel_ops, 1LL))));
-        std::vector<float> h_out(static_cast<size_t>(w) * h);
-
-        gpp::conv::conv2d_cpu_ref(h_in.data(), h_out.data(), w, h,
-                                  h_filter.data(), R);
-
-        using Clock = std::chrono::high_resolution_clock;
-        auto cpu_start = Clock::now();
-        for (int i = 0; i < cpu_iters; ++i)
-            gpp::conv::conv2d_cpu_ref(h_in.data(), h_out.data(), w, h,
-                                      h_filter.data(), R);
-        auto cpu_end = Clock::now();
-
-        const double cpu_total_us = static_cast<double>(
-            std::chrono::duration_cast<std::chrono::microseconds>(
-                cpu_end - cpu_start).count());
-        const float cpu_avg_ms =
-            static_cast<float>(cpu_total_us / 1000.0 / static_cast<double>(cpu_iters));
-        const float speedup = cpu_avg_ms / avg_ms;
-
-        std::fprintf(stdout, "cpu_time_ms=%.4f\n", cpu_avg_ms);
-        std::fprintf(stderr,
-            "conv_bench: w=%d h=%d R=%d variant=%d iters=%d warmup=%d\n"
-            "  gpu avg=%.4f ms\n"
-            "  cpu avg=%.4f ms  (cpu_iters=%d)  speedup=%.1fx\n",
-            w, h, R, static_cast<int>(variant), cfg.iters, cfg.warmup,
-            avg_ms, cpu_avg_ms, cpu_iters, speedup);
-    } else {
-        std::fprintf(stderr,
-            "conv_bench: w=%d h=%d R=%d variant=%d iters=%d warmup=%d\n"
-            "  gpu avg=%.4f ms\n",
-            w, h, R, static_cast<int>(variant), cfg.iters, cfg.warmup,
-            avg_ms);
-    }
+    std::fprintf(stderr,
+        "conv_bench: w=%d h=%d R=%d variant=%d iters=%d warmup=%d\n"
+        "  gpu avg=%.4f ms\n",
+        w, h, R, static_cast<int>(variant), cfg.iters, cfg.warmup,
+        avg_ms);
 
     CUDA_CHECK(cudaFree(d_in));
     CUDA_CHECK(cudaFree(d_out));

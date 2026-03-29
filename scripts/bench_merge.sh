@@ -7,13 +7,20 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BIN_DIR="${REPO_DIR}/build/bin"
-BENCH_BIN="${BIN_DIR}/merge_bench"
+GPU_BENCH_BIN="${BIN_DIR}/merge_bench"
+CPU_BENCH_BIN="${BIN_DIR}/merge_cpu_timing"
 SIZES_JSON="${REPO_DIR}/benchmarks/sizes.json"
 RESULTS_DIR="${REPO_DIR}/benchmarks/results"
 mkdir -p "${RESULTS_DIR}"
 
-if [[ ! -x "${BENCH_BIN}" ]]; then
-  echo "Error: ${BENCH_BIN} not found/executable."
+if [[ ! -x "${GPU_BENCH_BIN}" ]]; then
+  echo "Error: ${GPU_BENCH_BIN} not found/executable."
+  echo "Run: ./scripts/build.sh"
+  exit 1
+fi
+
+if [[ ! -x "${CPU_BENCH_BIN}" ]]; then
+  echo "Error: ${CPU_BENCH_BIN} not found/executable."
   echo "Run: ./scripts/build.sh"
   exit 1
 fi
@@ -73,7 +80,8 @@ calc_warmup() {
 
 {
   echo "timestamp=${TIMESTAMP}"
-  echo "bench_bin=${BENCH_BIN}"
+  echo "gpu_bench_bin=${GPU_BENCH_BIN}"
+  echo "cpu_bench_bin=${CPU_BENCH_BIN}"
   echo "git_rev=$(git -C "${REPO_DIR}" rev-parse --short HEAD 2>/dev/null || echo unknown)"
   echo ""
   echo "nvidia-smi:"
@@ -101,17 +109,16 @@ echo ""
 echo "pattern,variant,n,iters,warmup,time_ms,cpu_time_ms" > "${OUT_CSV}"
 
 declare -A CPU_TIMES
-first_variant="${VARIANTS[0]}"
 
-echo "--- Pass 1: CPU reference (variant=${first_variant}) ---"
+echo "--- Pass 1: CPU reference ---"
 for n in "${SIZES[@]}"; do
   iters="$(calc_iters "${n}")"
   warmup="$(calc_warmup "${iters}")"
 
-  args=(--variant "${first_variant}" --n "${n}" --iters "${iters}" --warmup "${warmup}")
-  output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"
+  args=(--n "${n}" --iters "${iters}" --warmup "${warmup}")
+  output="$("${CPU_BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
-  cpu_time_ms="$(echo "${output}" | grep -oE 'cpu_time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
+  cpu_time_ms="$(echo "${output}" | grep -oE '^cpu_time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
   if [[ -z "${cpu_time_ms}" ]]; then
     cpu_time_ms="N/A"
   fi
@@ -128,7 +135,7 @@ for variant in "${VARIANTS[@]}"; do
 
     args=(--variant "${variant}" --n "${n}" --iters "${iters}" --warmup "${warmup}" --no-cpu)
     echo "--- merge | ${variant} | n=${n} | iters=${iters} warmup=${warmup} ---"
-    output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"
+    output="$("${GPU_BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
     time_ms="$(echo "${output}" | grep -oE '^time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
     if [[ -z "${time_ms}" ]]; then

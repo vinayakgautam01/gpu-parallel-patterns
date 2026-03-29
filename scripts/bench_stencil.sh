@@ -7,12 +7,19 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BIN_DIR="${REPO_DIR}/build/bin"
-BENCH_BIN="${BIN_DIR}/stencil_bench"
+GPU_BENCH_BIN="${BIN_DIR}/stencil_bench"
+CPU_BENCH_BIN="${BIN_DIR}/stencil_cpu_timing"
 RESULTS_DIR="${REPO_DIR}/benchmarks/results"
 mkdir -p "${RESULTS_DIR}"
 
-if [[ ! -x "${BENCH_BIN}" ]]; then
-  echo "Error: ${BENCH_BIN} not found/executable."
+if [[ ! -x "${GPU_BENCH_BIN}" ]]; then
+  echo "Error: ${GPU_BENCH_BIN} not found/executable."
+  echo "Run: ./scripts/build.sh"
+  exit 1
+fi
+
+if [[ ! -x "${CPU_BENCH_BIN}" ]]; then
+  echo "Error: ${CPU_BENCH_BIN} not found/executable."
   echo "Run: ./scripts/build.sh"
   exit 1
 fi
@@ -84,7 +91,8 @@ calc_warmup() {
 # ---------------------------
 {
   echo "timestamp=${TIMESTAMP}"
-  echo "bench_bin=${BENCH_BIN}"
+  echo "gpu_bench_bin=${GPU_BENCH_BIN}"
+  echo "cpu_bench_bin=${CPU_BENCH_BIN}"
   echo "git_rev=$(git -C "${REPO_DIR}" rev-parse --short HEAD 2>/dev/null || echo unknown)"
   echo ""
   echo "nvidia-smi:"
@@ -115,8 +123,6 @@ echo "pattern,variant,side,nx,ny,nz,n,iters,warmup,time_ms,cpu_time_ms" > "${OUT
 # ---------------------------
 # Pass 1: CPU reference timing (once per grid size)
 # ---------------------------
-# CPU time is variant-independent, so we run any variant once per grid
-# size and cache cpu_time_ms for reuse in Pass 2. GPU time is discarded.
 declare -A CPU_TIMES
 
 echo "--- Pass 1: CPU reference ---"
@@ -125,11 +131,11 @@ for side in "${SIDES[@]}"; do
   iters="$(calc_iters "${side}")"
   warmup="$(calc_warmup "${iters}")"
 
-  args=(--variant "${VARIANTS[0]}" --w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup "${warmup}")
+  args=(--w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup "${warmup}")
 
-  output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"
+  output="$("${CPU_BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
-  cpu_time_ms="$(echo "${output}" | grep -oE 'cpu_time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
+  cpu_time_ms="$(echo "${output}" | grep -oE '^cpu_time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
   if [[ -z "${cpu_time_ms}" ]]; then
     cpu_time_ms="N/A"
   fi
@@ -153,14 +159,14 @@ for variant in "${VARIANTS[@]}"; do
     args=(--variant "${variant}" --w "${side}" --h "${side}" --d "${side}" --iters "${iters}" --warmup "${warmup}" --no-cpu)
 
     echo "--- stencil | ${variant} | ${side}³ (n=${n}) | iters=${iters} warmup=${warmup} ---"
-    output="$("${BENCH_BIN}" "${args[@]}" 2>&1 || true)"
+    output="$("${GPU_BENCH_BIN}" "${args[@]}" 2>&1 || true)"
 
     time_ms="$(echo "${output}" | grep -oE '^time_ms=[0-9.]+' | head -n1 | cut -d= -f2 || true)"
     if [[ -z "${time_ms}" ]]; then
       time_ms="N/A"
     fi
 
-    cpu_time_ms="${CPU_TIMES[${side}]}"
+    cpu_time_ms="${CPU_TIMES[${side}]:-N/A}"
 
     echo "stencil,${variant},${side},${side},${side},${side},${n},${iters},${warmup},${time_ms},${cpu_time_ms}" >> "${OUT_CSV}"
     echo "  => gpu=${time_ms} ms"
